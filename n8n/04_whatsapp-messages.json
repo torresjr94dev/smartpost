@@ -1,0 +1,68 @@
+{
+  "description": "Nodos HTTP para enviar mensajes de WhatsApp según estado del tenant",
+  "nodes": [
+    {
+      "name": "WA → No registrado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"👋 Hola! Para usar SmartPost necesitas registrarte primero.\\n\\n🔗 Crea tu cuenta aquí: {{ $env.ADMIN_URL }}/register\"\n  }\n}"
+      }
+    },
+    {
+      "name": "WA → Suscripción vencida",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 360],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"⚠️ Tu suscripción de SmartPost ha vencido.\\n\\nPara continuar publicando en tus redes, renueva tu plan:\\n💳 {{ $env.ADMIN_URL }}/suscripcion\"\n  }\n}"
+      }
+    },
+    {
+      "name": "WA → Token expirado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 520],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"🔐 Tu conexión con Facebook/Instagram ha expirado.\\n\\nReconecta tu cuenta para continuar publicando:\\n🔗 {{ $env.ADMIN_URL }}/cuentas\"\n  }\n}"
+      }
+    }
+  ],
+  "n8n_variables_required": [
+    "WHATSAPP_PHONE_NUMBER_ID - ID del número de WhatsApp Business",
+    "ADMIN_URL - URL pública del admin (ej: https://app.tudominio.com)",
+    "TOKEN_ENCRYPTION_KEY - 64 chars hex (misma que .env.local del admin)"
+  ]
+}

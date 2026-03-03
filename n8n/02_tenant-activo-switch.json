@@ -1,0 +1,84 @@
+{
+  "name": "¿Tenant Activo?",
+  "type": "n8n-nodes-base.switch",
+  "typeVersion": 3,
+  "position": [680, 300],
+  "parameters": {
+    "mode": "rules",
+    "rules": {
+      "values": [
+        {
+          "conditions": {
+            "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "no-registrado",
+                "leftValue": "={{ $json.length }}",
+                "rightValue": 0,
+                "operator": { "type": "number", "operation": "equals" }
+              }
+            ]
+          },
+          "renameOutput": true,
+          "outputKey": "no_registrado"
+        },
+        {
+          "conditions": {
+            "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "suscripcion-vencida",
+                "leftValue": "={{ $json[0].subscriptionStatus }}",
+                "rightValue": "active",
+                "operator": { "type": "string", "operation": "notEquals" }
+              },
+              {
+                "leftValue": "={{ $json[0].subscriptionStatus }}",
+                "rightValue": "trialing",
+                "operator": { "type": "string", "operation": "notEquals" }
+              }
+            ]
+          },
+          "renameOutput": true,
+          "outputKey": "suscripcion_vencida"
+        },
+        {
+          "conditions": {
+            "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "token-expirado",
+                "leftValue": "={{ $json[0].fb_token_encrypted === null || $json[0].fb_active === false }}",
+                "rightValue": true,
+                "operator": { "type": "boolean", "operation": "true" }
+              }
+            ]
+          },
+          "renameOutput": true,
+          "outputKey": "token_expirado"
+        },
+        {
+          "conditions": {
+            "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "activo",
+                "leftValue": "={{ ($json[0].subscriptionStatus === 'active' || $json[0].subscriptionStatus === 'trialing') && $json[0].fb_token_encrypted !== null && $json[0].fb_active === true }}",
+                "rightValue": true,
+                "operator": { "type": "boolean", "operation": "true" }
+              }
+            ]
+          },
+          "renameOutput": true,
+          "outputKey": "activo"
+        }
+      ]
+    },
+    "fallbackOutput": "no_registrado"
+  },
+  "notes": "Outputs: activo → continúa flujo normal | no_registrado → mensaje de registro | suscripcion_vencida → mensaje de renovación | token_expirado → mensaje de reconexión"
+}

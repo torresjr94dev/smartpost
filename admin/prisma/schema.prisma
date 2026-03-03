@@ -1,0 +1,116 @@
+// SmartPost — Prisma Schema
+// Compatible con el mismo PostgreSQL que usa n8n
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── NextAuth required tables ───────────────────────────────────
+model Account {
+  id                String  @id @default(uuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── Core SaaS models ────────────────────────────────────────────
+model User {
+  id                 String              @id @default(uuid())
+  waId               String?             @unique @map("wa_id")
+  email              String              @unique
+  emailVerified      DateTime?           @map("email_verified")
+  name               String?
+  image              String?
+  password           String?             // bcrypt hash — null si usa OAuth externo
+  subscriptionStatus String              @default("trialing") @map("subscription_status")
+  subscriptionId     String?             @map("subscription_id")
+  stripeCustomerId   String?             @map("stripe_customer_id")
+  plan               String              @default("basic")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  accounts           Account[]
+  sessions           Session[]
+  socialAccounts     UserSocialAccount[]
+  posts              Post[]
+
+  @@map("users")
+}
+
+model UserSocialAccount {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  platform       String    // facebook | instagram | linkedin
+  accessToken    String    @map("access_token")           // AES-256-CBC encrypted
+  refreshToken   String?   @map("refresh_token")          // AES-256-CBC encrypted
+  tokenExpiresAt DateTime? @map("token_expires_at")
+  platformUserId String?   @map("platform_user_id")
+  pageId         String?   @map("page_id")               // FB Page ID / IG Business ID
+  igUserId       String?   @map("ig_user_id")            // Instagram Business Account ID
+  liPersonId     String?   @map("li_person_id")          // LinkedIn person URN
+  profileName    String?   @map("profile_name")
+  profileImage   String?   @map("profile_image")
+  isActive       Boolean   @default(true) @map("is_active")
+  connectedAt    DateTime  @default(now()) @map("connected_at")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@map("user_social_accounts")
+}
+
+model Post {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  platform       String    // facebook | instagram | linkedin
+  content        String
+  imageUrl       String?   @map("image_url")
+  status         String    @default("draft") // draft | scheduled | published | failed
+  publishedAt    DateTime? @map("published_at")
+  scheduledFor   DateTime? @map("scheduled_for")
+  platformPostId String?   @map("platform_post_id")
+  reach          Int?      @default(0)
+  likes          Int?      @default(0)
+  comments       Int?      @default(0)
+  shares         Int?      @default(0)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, platform])
+  @@index([userId, status])
+  @@map("posts")
+}
