@@ -1,8 +1,7 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Next.js 16: Turbopack es el bundler estable por defecto en dev
-  // Para usarlo explícitamente: npx next dev --turbopack
+  output: 'standalone',
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'graph.facebook.com' },

@@ -32,6 +32,20 @@ services:
     networks:
       - smartpost-net
 
+  admin:
+    build: ./admin
+    container_name: smartpost_admin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3020:3000"
+    env_file:
+      - ./admin/.env.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - smartpost-net
+
   frontend:
     build: ./frontend
     container_name: smartpost_frontend
