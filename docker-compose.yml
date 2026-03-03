@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartpost_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartpost
+      POSTGRES_PASSWORD: smartpost_pass
+      POSTGRES_DB: smartpost
+    volumes:
+      - smartpost_pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartpost -d smartpost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smartpost-net
+
+  backend:
+    build: ./backend
+    container_name: smartpost_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://smartpost:smartpost_pass@postgres:5432/smartpost
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - smartpost-net
+
+  frontend:
+    build: ./frontend
+    container_name: smartpost_frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3010:80"
+    depends_on:
+      - backend
+    networks:
+      - smartpost-net
+
+networks:
+  smartpost-net:
+    driver: bridge
+
+volumes:
+  smartpost_pgdata:
