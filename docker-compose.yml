@@ -26,6 +26,8 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://smartpost:smartpost_pass@postgres:5432/smartpost
+    ports:
+      - "127.0.0.1:4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,7 +40,7 @@ services:
     container_name: smartpost_admin
     restart: unless-stopped
     env_file:
-      - ./admin/.env.local
+      - ./admin/.env
     environment:
       DATABASE_URL: postgresql://smartpost:smartpost_pass@postgres:5432/smartpost
     ports:
