@@ -5,17 +5,14 @@
  */
 
 import { withAuth } from 'next-auth/middleware'
+import type { NextRequestWithAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 
 // Rutas que NO requieren autenticación
 const PUBLIC_PATHS = ['/login', '/api/auth', '/api/webhooks']
 
-// Next.js 15/16: next-auth extiene la Request con .nextauth
-type AuthRequest = NextRequest & { nextauth?: { token?: Record<string, unknown> } }
-
 export default withAuth(
-  function middleware(req: AuthRequest) {
+  function middleware(req: NextRequestWithAuth) {
     const { pathname } = req.nextUrl
     const token = req.nextauth?.token
 
@@ -31,7 +28,7 @@ export default withAuth(
 
     // Verificar subscription status para rutas protegidas del dashboard
     if (token) {
-      const status = token.subscriptionStatus as string | undefined
+      const status = (token as Record<string, unknown>).subscriptionStatus as string | undefined
       const blockedStatuses = ['canceled', 'past_due']
 
       if (status && blockedStatuses.includes(status) && !pathname.startsWith('/suscripcion')) {

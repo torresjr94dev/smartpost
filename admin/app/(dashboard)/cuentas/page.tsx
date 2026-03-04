@@ -74,7 +74,8 @@ export default async function CuentasPage() {
   const fbState  = randomBytes(16).toString('hex')
   const liState  = randomBytes(16).toString('hex')
 
-  const serialized = accounts.map(a => ({
+  type AccountRow = typeof accounts[number]
+  const serialized = accounts.map((a: AccountRow) => ({
     ...a,
     tokenExpiresAt: a.tokenExpiresAt?.toISOString() ?? null,
     connectedAt:    a.connectedAt.toISOString(),

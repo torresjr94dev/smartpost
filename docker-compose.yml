@@ -32,20 +32,24 @@ services:
     networks:
       - smartpost-net
 
+  # Panel de administración Next.js → smartpost.torresjr.dev
   admin:
     build: ./admin
     container_name: smartpost_admin
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:3020:3000"
     env_file:
       - ./admin/.env.local
+    environment:
+      DATABASE_URL: postgresql://smartpost:smartpost_pass@postgres:5432/smartpost
+    ports:
+      - "127.0.0.1:3020:3000"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - smartpost-net
 
+  # Frontend público Vite → panel.smartpost.torresjr.dev
   frontend:
     build: ./frontend
     container_name: smartpost_frontend

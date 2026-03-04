@@ -155,7 +155,7 @@ export default async function DashboardPage() {
             </p>
           ) : (
             <div className="flex flex-wrap gap-3">
-              {socialAccounts.map(acc => (
+              {socialAccounts.map((acc: { platform: string; profileName: string | null }) => (
                 <div key={acc.platform}
                      className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-dark-border bg-white/[0.03]">
                   <PlatformIcon platform={acc.platform} />

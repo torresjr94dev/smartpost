@@ -64,8 +64,8 @@ export const authOptions: NextAuthOptions = {
       // On first sign-in, user object is populated
       if (user) {
         token.id                 = user.id
-        token.subscriptionStatus = (user as Record<string, unknown>).subscriptionStatus as string
-        token.plan               = (user as Record<string, unknown>).plan as string
+        token.subscriptionStatus = (user as unknown as Record<string, unknown>).subscriptionStatus as string
+        token.plan               = (user as unknown as Record<string, unknown>).plan as string
       }
       return token
     },

@@ -49,13 +49,15 @@ export async function GET() {
       expand: ['items.data.price'],
     })
 
-    const price = subscription.items.data[0]?.price
+    const item  = subscription.items.data[0]
+    const price = item?.price
+    const periodEnd = item?.current_period_end ?? null
 
     return NextResponse.json({
       plan:               user.plan,
       subscriptionStatus: subscription.status,
       subscriptionId:     subscription.id,
-      currentPeriodEnd:   new Date(subscription.current_period_end * 1000).toISOString(),
+      currentPeriodEnd:   periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancelAtPeriodEnd:  subscription.cancel_at_period_end,
       amount:             price?.unit_amount ?? null,
       currency:           price?.currency    ?? null,

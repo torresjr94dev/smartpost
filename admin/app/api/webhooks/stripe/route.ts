@@ -69,7 +69,8 @@ export async function POST(req: NextRequest) {
       // ── Invoice paid — keep subscription active ────────────────
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice
-        const subscriptionId = invoice.subscription as string | null
+        const subRef = invoice.parent?.subscription_details?.subscription
+        const subscriptionId = typeof subRef === 'string' ? subRef : subRef?.id ?? null
         if (!subscriptionId) break
 
         await prisma.user.updateMany({
@@ -82,7 +83,8 @@ export async function POST(req: NextRequest) {
       // ── Invoice payment failed ─────────────────────────────────
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
-        const subscriptionId = invoice.subscription as string | null
+        const subRef = invoice.parent?.subscription_details?.subscription
+        const subscriptionId = typeof subRef === 'string' ? subRef : subRef?.id ?? null
         if (!subscriptionId) break
 
         await prisma.user.updateMany({
@@ -134,7 +136,4 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Required: disable body parsing so we can read raw body for HMAC verification
-export const config = {
-  api: { bodyParser: false },
-}
+// App Router: no body parser by default — req.text() works without additional config

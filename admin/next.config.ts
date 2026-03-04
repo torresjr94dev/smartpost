@@ -12,10 +12,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.cdninstagram.com' },
     ],
   },
-  eslint: { ignoreDuringBuilds: false },
-  typescript: { ignoreBuildErrors: false },
-  // Next.js 15/16: experimental.serverActions ya no existe — es estable por defecto
-  // Next.js 16: React 19 requerido (ya incluido en package.json)
+  // Next.js 16: eslint/typescript build options removed (run separately via CLI)
 }
 
 export default nextConfig
