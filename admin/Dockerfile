@@ -10,6 +10,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# NEXT_PUBLIC_* vars must be available at build time (baked into the JS bundle)
+ARG NEXT_PUBLIC_META_APP_ID
+ENV NEXT_PUBLIC_META_APP_ID=$NEXT_PUBLIC_META_APP_ID
+
 # Generate Prisma client
 RUN npx prisma generate
 

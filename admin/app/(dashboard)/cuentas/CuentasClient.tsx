@@ -343,7 +343,8 @@ export default function CuentasClient({
       return
     }
 
-    FB.login(async (response: FBLoginResponse) => {
+    // FB.login callback must be synchronous — handle async work in a separate function
+    async function onFBLogin(response: FBLoginResponse) {
       if (response.status !== 'connected' || !response.authResponse) {
         setLoadingPlatform(null)
         return
@@ -357,13 +358,14 @@ export default function CuentasClient({
         const data = await res.json() as { success?: boolean; hasInstagram?: boolean; error?: string }
         if (!res.ok) throw new Error(data.error ?? t('common.error'))
 
-        // Refresh to get updated account list from server
         window.location.reload()
       } catch (e) {
         setError(e instanceof Error ? e.message : t('common.error'))
         setLoadingPlatform(null)
       }
-    }, {
+    }
+
+    FB.login((response: FBLoginResponse) => { void onFBLogin(response) }, {
       scope: [
         'pages_manage_posts',
         'pages_read_engagement',

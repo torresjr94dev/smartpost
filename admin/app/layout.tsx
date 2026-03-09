@@ -12,9 +12,6 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // Read server-side env var at runtime — no NEXT_PUBLIC_ baking needed
-  const fbAppId = process.env.META_APP_ID ?? ''
-
   return (
     // suppressHydrationWarning: ThemeScript toggles .dark before hydration to prevent flash
     <html lang="es" className="dark" suppressHydrationWarning>
@@ -23,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body suppressHydrationWarning>
-        <Providers fbAppId={fbAppId}>{children}</Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

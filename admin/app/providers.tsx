@@ -40,13 +40,13 @@ function ThemeSyncer() {
   return null
 }
 
-export function Providers({ children, fbAppId }: { children: ReactNode; fbAppId: string }) {
+export function Providers({ children }: { children: ReactNode }) {
   return (
     <>
       <ThemeScript />
       <I18nProvider defaultLocale="es">
         <ThemeSyncer />
-        <FacebookSDKLoader appId={fbAppId} />
+        <FacebookSDKLoader />
         {children}
       </I18nProvider>
     </>

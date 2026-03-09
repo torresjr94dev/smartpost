@@ -36,7 +36,12 @@ services:
 
   # Panel de administración Next.js → smartpost.torresjr.dev
   admin:
-    build: ./admin
+    build:
+      context: ./admin
+      args:
+        # NEXT_PUBLIC_* vars must be baked into the Next.js bundle at build time
+        # App ID is not secret — it's exposed to the browser by design
+        NEXT_PUBLIC_META_APP_ID: "25840633062231446"
     container_name: smartpost_admin
     restart: unless-stopped
     env_file:

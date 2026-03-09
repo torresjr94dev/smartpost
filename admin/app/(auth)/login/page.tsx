@@ -217,7 +217,8 @@ function LoginForm() {
       return
     }
 
-    FB.login(async (response: FBLoginResponse) => {
+    // FB.login callback must be synchronous — handle async work in a separate function
+    async function onFBLogin(response: FBLoginResponse) {
       if (response.status !== 'connected' || !response.authResponse) {
         setFbLoading(false)
         return
@@ -244,7 +245,9 @@ function LoginForm() {
         setError(t('auth.errorConnection'))
         setFbLoading(false)
       }
-    }, { scope: 'email,public_profile' })
+    }
+
+    FB.login((response: FBLoginResponse) => { void onFBLogin(response) }, { scope: 'email,public_profile' })
   }
 
   async function handleSubmit(e: React.FormEvent) {
