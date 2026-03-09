@@ -247,7 +247,7 @@ function LoginForm() {
       }
     }
 
-    FB.login((response: FBLoginResponse) => { void onFBLogin(response) }, { scope: 'email,public_profile' })
+    FB.login((response: FBLoginResponse) => { void onFBLogin(response) }, { scope: 'public_profile' })
   }
 
   async function handleSubmit(e: React.FormEvent) {
