@@ -5,11 +5,11 @@ type BadgeVariant = 'published' | 'scheduled' | 'draft' | 'failed' | 'active' | 
 const variants: Record<BadgeVariant, string> = {
   published: 'bg-brand-green/15 text-brand-green',
   scheduled: 'bg-brand-purple/15 text-brand-purple',
-  draft:     'bg-white/10 text-ink-secondary',
+  draft:     'bg-[var(--bg-surface)] text-[var(--text-secondary)]',
   failed:    'bg-red-500/15 text-red-400',
   active:    'bg-brand-green/15 text-brand-green',
   expired:   'bg-amber-500/15 text-amber-400',
-  inactive:  'bg-white/10 text-ink-muted',
+  inactive:  'bg-[var(--bg-surface)] text-[var(--text-muted)]',
 }
 
 const labels: Record<BadgeVariant, string> = {

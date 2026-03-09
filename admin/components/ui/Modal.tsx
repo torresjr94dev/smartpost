@@ -47,11 +47,11 @@ export default function Modal({ open, onClose, title, children, size = 'md' }: M
            style={{ boxShadow: '0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05)' }}>
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-dark-border">
-            <h2 className="text-[16px] font-semibold text-ink-primary">{title}</h2>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+            <h2 className="text-[16px] font-semibold text-[var(--text)]">{title}</h2>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-ink-muted hover:text-ink-primary hover:bg-white/[0.06] transition-colors cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-surface)] transition-colors cursor-pointer"
               aria-label="Cerrar"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="w-4 h-4">

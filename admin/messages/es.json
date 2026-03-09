@@ -1,0 +1,144 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "retry": "Intentar de nuevo",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "all": "Todos",
+    "close": "Cerrar",
+    "month": "mes",
+    "year": "año"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "accounts": "Cuentas",
+    "posts": "Publicaciones",
+    "subscription": "Suscripción",
+    "settings": "Configuración",
+    "logout": "Cerrar sesión",
+    "adminPanel": "Admin Panel"
+  },
+  "auth": {
+    "pageTitle": "Inicia sesión",
+    "formTitle": "Accede a tu panel",
+    "formSubtitle": "Gestiona tus redes sociales con inteligencia.",
+    "email": "Correo electrónico",
+    "emailPlaceholder": "tu@empresa.com",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "loginButton": "Entrar al panel",
+    "loggingIn": "Autenticando...",
+    "errorEmpty": "Por favor completa todos los campos",
+    "errorCredentials": "Email o contraseña incorrectos",
+    "errorConnection": "Error de conexión. Intenta de nuevo.",
+    "brandTagline": "Publica más.\nTrabaja menos.",
+    "brandSub": "Automatiza Facebook, Instagram y LinkedIn desde WhatsApp.",
+    "feature1": "Facebook, Instagram & LinkedIn",
+    "feature2": "WhatsApp Business API",
+    "feature3": "Programación automática",
+    "feature4": "Analytics en tiempo real",
+    "copyright": "SmartPost · TorresDev"
+  },
+  "dashboard": {
+    "greeting": "Hola, {name}",
+    "subtitle": "Resumen de tu actividad",
+    "metrics": {
+      "totalPosts": "Posts totales",
+      "totalPostsSub": "Todos los estados",
+      "published": "Publicados",
+      "publishedSub": "En redes sociales",
+      "reach": "Alcance total",
+      "reachSub": "Impresiones acumuladas",
+      "interactions": "Interacciones",
+      "interactionsSub": "{likes} likes · {comments} comentarios"
+    },
+    "accounts": {
+      "title": "Cuentas conectadas",
+      "empty": "No tienes cuentas conectadas.",
+      "connectNow": "Conectar ahora →"
+    },
+    "recentPosts": {
+      "title": "Publicaciones recientes",
+      "empty": "Aún no tienes publicaciones."
+    }
+  },
+  "status": {
+    "published": "Publicado",
+    "scheduled": "Programado",
+    "draft": "Borrador",
+    "failed": "Fallido",
+    "active": "Activa",
+    "trialing": "Trial",
+    "past_due": "Vencida",
+    "canceled": "Cancelada",
+    "inactive": "Inactiva",
+    "connected": "Conectada",
+    "expired": "Expirada"
+  },
+  "accounts": {
+    "title": "Cuentas conectadas",
+    "subtitle": "Conecta tus redes sociales para empezar a publicar",
+    "connect": "Conectar",
+    "disconnect": "Desconectar",
+    "reconnect": "Reconectar",
+    "connectedAs": "Conectado como",
+    "tokenExpires": "Token expira",
+    "facebook": {
+      "name": "Facebook",
+      "desc": "Publica en tu página de Facebook"
+    },
+    "instagram": {
+      "name": "Instagram",
+      "desc": "Publica en tu perfil de Instagram Business"
+    },
+    "linkedin": {
+      "name": "LinkedIn",
+      "desc": "Publica en tu perfil de LinkedIn"
+    }
+  },
+  "posts": {
+    "title": "Publicaciones",
+    "subtitle": "Historial y estado de tus publicaciones",
+    "empty": "Aún no tienes publicaciones.",
+    "emptyAction": "Crea tu primera publicación desde WhatsApp",
+    "columns": {
+      "content": "Contenido",
+      "platform": "Plataforma",
+      "status": "Estado",
+      "date": "Fecha",
+      "metrics": "Métricas"
+    },
+    "likes": "{n} likes",
+    "comments": "{n} comentarios"
+  },
+  "subscription": {
+    "title": "Suscripción",
+    "subtitle": "Gestiona tu plan y facturación",
+    "currentPlan": "Tu plan actual",
+    "monthly": "Mensual",
+    "annual": "Anual",
+    "save": "Ahorra {pct}%",
+    "manageBilling": "Gestionar facturación",
+    "choosePlan": "Elige tu plan",
+    "upgrade": "Actualiza tu plan",
+    "currentPlanCta": "Plan actual",
+    "noContract": "Sin contratos",
+    "cancelAnytime": "Cancela cuando quieras",
+    "securePayment": "Pago seguro Stripe",
+    "support": "Soporte en español",
+    "billedAnnually": "cobrado anual",
+    "nextRenewal": "Próxima renovación",
+    "billing": "Facturación",
+    "state": "Estado",
+    "cancelAtEnd": "Cancela al vencer",
+    "upToDate": "Al día"
+  }
+}

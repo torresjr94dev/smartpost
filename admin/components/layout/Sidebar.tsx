@@ -4,11 +4,13 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import clsx from 'clsx'
+import { useI18n } from '@/lib/i18n'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 // ─── SVG Nav Icons ────────────────────────────────────────────────
 function IconGrid() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5 w-[18px] h-[18px]">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px]">
       <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
       <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
     </svg>
@@ -42,16 +44,6 @@ function IconCreditCard() {
   )
 }
 
-function IconSettings() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px]">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/>
-      <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
-    </svg>
-  )
-}
-
 function IconLogout() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px]">
@@ -71,41 +63,41 @@ function IconWhatsApp() {
   )
 }
 
-// ─── Nav links config ─────────────────────────────────────────────
-const NAV_LINKS = [
-  { href: '/dashboard',     label: 'Dashboard',      icon: <IconGrid /> },
-  { href: '/cuentas',       label: 'Cuentas',        icon: <IconLink /> },
-  { href: '/publicaciones', label: 'Publicaciones',  icon: <IconFile /> },
-  { href: '/suscripcion',   label: 'Suscripción',    icon: <IconCreditCard /> },
-]
-
 // ─── Component ────────────────────────────────────────────────────
 interface SidebarProps {
-  userName?: string | null
+  userName?:  string | null
   userEmail?: string | null
-  plan?: string
+  plan?:      string
 }
 
 export default function Sidebar({ userName, userEmail, plan = 'basic' }: SidebarProps) {
   const pathname = usePathname()
+  const { t }    = useI18n()
+
+  const NAV_LINKS = [
+    { href: '/dashboard',     label: t('nav.dashboard'),    icon: <IconGrid /> },
+    { href: '/cuentas',       label: t('nav.accounts'),     icon: <IconLink /> },
+    { href: '/publicaciones', label: t('nav.posts'),        icon: <IconFile /> },
+    { href: '/suscripcion',   label: t('nav.subscription'), icon: <IconCreditCard /> },
+  ]
 
   const planBadge: Record<string, string> = {
-    basic:      'bg-ink-muted/20 text-ink-secondary',
+    basic:      'bg-[var(--border-hover)] text-[var(--text-secondary)]',
     pro:        'bg-brand-green/15 text-brand-green',
     enterprise: 'bg-brand-purple/15 text-brand-purple',
   }
 
   return (
-    <aside className="flex flex-col w-[240px] min-h-screen bg-dark-card border-r border-dark-border flex-shrink-0">
+    <aside className="flex flex-col w-[240px] min-h-screen bg-[var(--bg-card)] border-r border-[var(--border)] flex-shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-dark-border">
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-[var(--border)]">
         <div className="w-9 h-9 rounded-xl bg-gradient-green flex items-center justify-center text-[#003d1f] flex-shrink-0"
              style={{ boxShadow: '0 4px 16px rgba(0,214,114,0.3)' }}>
           <IconWhatsApp />
         </div>
         <div>
-          <p className="text-[15px] font-bold text-ink-primary tracking-tight">SmartPost</p>
-          <p className="text-[10px] text-ink-muted">Admin Panel</p>
+          <p className="text-[15px] font-bold text-[var(--text)] tracking-tight">SmartPost</p>
+          <p className="text-[10px] text-[var(--text-muted)]">{t('nav.adminPanel')}</p>
         </div>
       </div>
 
@@ -127,9 +119,9 @@ export default function Sidebar({ userName, userEmail, plan = 'basic' }: Sidebar
       </nav>
 
       {/* Divider */}
-      <div className="border-t border-dark-border mx-3" />
+      <div className="border-t border-[var(--border)] mx-3" />
 
-      {/* Bottom: user + logout */}
+      {/* Bottom: user + language + logout */}
       <div className="px-3 py-4 flex flex-col gap-1">
         {/* User info */}
         <div className="px-3 py-3 rounded-xl flex items-center gap-3">
@@ -137,7 +129,7 @@ export default function Sidebar({ userName, userEmail, plan = 'basic' }: Sidebar
             {(userName?.[0] ?? userEmail?.[0] ?? 'U').toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-medium text-ink-primary truncate">
+            <p className="text-[13px] font-medium text-[var(--text)] truncate">
               {userName ?? 'Usuario'}
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -148,14 +140,19 @@ export default function Sidebar({ userName, userEmail, plan = 'basic' }: Sidebar
           </div>
         </div>
 
+        {/* Language switcher */}
+        <div className="px-3 py-1">
+          <LanguageSwitcher variant="pill" />
+        </div>
+
         {/* Logout */}
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="sidebar-link text-ink-muted hover:text-red-400 hover:bg-red-500/10 mt-0.5"
-          aria-label="Cerrar sesión"
+          className="sidebar-link text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 mt-0.5"
+          aria-label={t('nav.logout')}
         >
           <IconLogout />
-          <span>Cerrar sesión</span>
+          <span>{t('nav.logout')}</span>
         </button>
       </div>
     </aside>

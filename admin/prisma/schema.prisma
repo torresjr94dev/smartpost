@@ -56,7 +56,7 @@ model User {
   emailVerified      DateTime?           @map("email_verified")
   name               String?
   image              String?
-  password           String?             // bcrypt hash — null si usa OAuth externo
+  password           String?
   subscriptionStatus String              @default("trialing") @map("subscription_status")
   subscriptionId     String?             @map("subscription_id")
   stripeCustomerId   String?             @map("stripe_customer_id")
@@ -73,14 +73,14 @@ model User {
 model UserSocialAccount {
   id             String    @id @default(uuid())
   userId         String    @map("user_id")
-  platform       String    // facebook | instagram | linkedin
-  accessToken    String    @map("access_token")           // AES-256-CBC encrypted
-  refreshToken   String?   @map("refresh_token")          // AES-256-CBC encrypted
+  platform       String
+  accessToken    String    @map("access_token")
+  refreshToken   String?   @map("refresh_token")
   tokenExpiresAt DateTime? @map("token_expires_at")
   platformUserId String?   @map("platform_user_id")
-  pageId         String?   @map("page_id")               // FB Page ID / IG Business ID
-  igUserId       String?   @map("ig_user_id")            // Instagram Business Account ID
-  liPersonId     String?   @map("li_person_id")          // LinkedIn person URN
+  pageId         String?   @map("page_id")
+  igUserId       String?   @map("ig_user_id")
+  liPersonId     String?   @map("li_person_id")
   profileName    String?   @map("profile_name")
   profileImage   String?   @map("profile_image")
   isActive       Boolean   @default(true) @map("is_active")
@@ -94,10 +94,10 @@ model UserSocialAccount {
 model Post {
   id             String    @id @default(uuid())
   userId         String    @map("user_id")
-  platform       String    // facebook | instagram | linkedin
+  platform       String
   content        String
   imageUrl       String?   @map("image_url")
-  status         String    @default("draft") // draft | scheduled | published | failed
+  status         String    @default("draft")
   publishedAt    DateTime? @map("published_at")
   scheduledFor   DateTime? @map("scheduled_for")
   platformPostId String?   @map("platform_post_id")

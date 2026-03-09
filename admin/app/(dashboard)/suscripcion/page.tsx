@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import TopBar from '@/components/layout/TopBar'
+import { FadeContent } from '@/components/animations/CountUp'
+import { useI18n } from '@/lib/i18n'
 
 // ─── Types ────────────────────────────────────────────────────────
 interface SubscriptionData {
@@ -18,82 +17,112 @@ interface SubscriptionData {
   interval:           string | null
 }
 
-// ─── Pricing config ──────────────────────────────────────────────
-// Precios en USD. Cambia a MXN si vendes en pesos.
+// ─── Pricing config ───────────────────────────────────────────────
 const PLANS = {
   basic: {
-    label:     'Basic',
-    subtitle:  'Para solopreneurs y freelancers',
-    monthly:   29,
-    annual:    19,         // billed $228/year
-    color:     'text-ink-secondary',
-    borderActive: 'border-dark-border',
-    badge:     null,
-    cta:       'Empezar Basic',
+    label:    'Basic',
+    subtitle: 'Para solopreneurs y freelancers',
+    monthly:  29,
+    annual:   19,
+    color:    'text-[var(--text-secondary)]',
+    badge:    null as string | null,
+    cta:      'Empezar Basic',
     features: [
-      { text: '1 número de WhatsApp',              included: true  },
-      { text: 'Facebook + Instagram',              included: true  },
-      { text: 'LinkedIn',                          included: false },
-      { text: '30 posts por mes',                  included: true  },
-      { text: 'Programación de posts',             included: true  },
-      { text: 'Historial 30 días',                 included: true  },
-      { text: 'Analytics básico',                  included: true  },
-      { text: 'Analytics avanzado con métricas',   included: false },
-      { text: 'Soporte email (48h)',                included: true  },
-      { text: 'Soporte prioritario (24h)',          included: false },
+      { text: '1 número de WhatsApp',             included: true  },
+      { text: 'Facebook + Instagram',             included: true  },
+      { text: 'LinkedIn',                         included: false },
+      { text: '30 posts por mes',                 included: true  },
+      { text: 'Programación de posts',            included: true  },
+      { text: 'Historial 30 días',                included: true  },
+      { text: 'Analytics básico',                 included: true  },
+      { text: 'Analytics avanzado con métricas',  included: false },
+      { text: 'Soporte email (48h)',               included: true  },
+      { text: 'Soporte prioritario (24h)',         included: false },
     ],
   },
   pro: {
-    label:     'Pro',
-    subtitle:  'Para PYMES y emprendedores activos',
-    monthly:   69,
-    annual:    49,         // billed $588/year
-    color:     'text-brand-green',
-    borderActive: 'border-brand-green/40',
-    badge:     'Más popular',
-    cta:       'Empezar Pro',
+    label:    'Pro',
+    subtitle: 'Para PYMES y emprendedores activos',
+    monthly:  69,
+    annual:   49,
+    color:    'text-brand-green',
+    badge:    'Más popular' as string | null,
+    cta:      'Empezar Pro',
     features: [
-      { text: '1 número de WhatsApp',              included: true  },
-      { text: 'Facebook + Instagram',              included: true  },
-      { text: 'LinkedIn',                          included: true  },
-      { text: 'Posts ilimitados',                  included: true  },
-      { text: 'Programación de posts',             included: true  },
-      { text: 'Historial completo',                included: true  },
-      { text: 'Analytics básico',                  included: true  },
-      { text: 'Analytics avanzado con métricas',   included: true  },
-      { text: 'Soporte email (48h)',                included: true  },
-      { text: 'Soporte prioritario (24h)',          included: true  },
+      { text: '1 número de WhatsApp',             included: true  },
+      { text: 'Facebook + Instagram',             included: true  },
+      { text: 'LinkedIn',                         included: true  },
+      { text: 'Posts ilimitados',                 included: true  },
+      { text: 'Programación de posts',            included: true  },
+      { text: 'Historial completo',               included: true  },
+      { text: 'Analytics básico',                 included: true  },
+      { text: 'Analytics avanzado con métricas',  included: true  },
+      { text: 'Soporte email (48h)',               included: true  },
+      { text: 'Soporte prioritario (24h)',         included: true  },
     ],
   },
 } as const
 
 type PlanKey = keyof typeof PLANS
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  active:   { label: 'Activa',    color: 'bg-brand-green/15 text-brand-green'   },
-  trialing: { label: 'Trial',     color: 'bg-brand-purple/15 text-brand-purple' },
-  past_due: { label: 'Vencida',   color: 'bg-amber-500/15 text-amber-400'       },
-  canceled: { label: 'Cancelada', color: 'bg-red-500/15 text-red-400'           },
-  inactive: { label: 'Inactiva',  color: 'bg-white/10 text-ink-muted'           },
+const STATUS_STYLES: Record<string, string> = {
+  active:   'bg-brand-green/15 text-brand-green',
+  trialing: 'bg-brand-purple/15 text-brand-purple',
+  past_due: 'bg-amber-500/15 text-amber-400',
+  canceled: 'bg-red-500/15 text-red-400',
+  inactive: 'bg-[var(--bg-surface)] text-[var(--text-muted)]',
 }
 
-// ─── Check icon ───────────────────────────────────────────────────
-function Check({ color = 'text-brand-green' }: { color?: string }) {
+// ─── Icons ────────────────────────────────────────────────────────
+function CheckIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
-         strokeLinecap="round" strokeLinejoin="round"
-         className={`w-4 h-4 flex-shrink-0 ${color}`}>
+         strokeLinecap="round" strokeLinejoin="round" className={className}>
       <polyline points="20 6 9 17 4 12"/>
     </svg>
   )
 }
 
-function X() {
+function XIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-         strokeLinecap="round" className="w-4 h-4 flex-shrink-0 text-ink-muted opacity-40">
+         strokeLinecap="round" className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-muted)] opacity-40">
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
+  )
+}
+
+// ─── Billing Toggle ───────────────────────────────────────────────
+function BillingToggle({ annual, onChange }: { annual: boolean; onChange: (v: boolean) => void }) {
+  const { t } = useI18n()
+  return (
+    <div className="inline-flex items-center bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl p-1 gap-0.5">
+      <button
+        onClick={() => onChange(false)}
+        className={`px-5 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 cursor-pointer select-none ${
+          !annual
+            ? 'bg-[var(--bg-card)] text-[var(--text)] border border-[var(--border-hover)] shadow-sm'
+            : 'border border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+        }`}
+      >
+        {t('subscription.monthly')}
+      </button>
+      <button
+        onClick={() => onChange(true)}
+        className={`px-5 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 cursor-pointer select-none flex items-center gap-2.5 ${
+          annual
+            ? 'bg-[var(--bg-card)] text-[var(--text)] border border-[var(--border-hover)] shadow-sm'
+            : 'border border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+        }`}
+      >
+        {t('subscription.annual')}
+        <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold transition-all duration-200 ${
+          annual ? 'bg-brand-green/20 text-brand-green' : 'bg-white/[0.06] text-[var(--text-muted)]'
+        }`}>
+          −35%
+        </span>
+      </button>
+    </div>
   )
 }
 
@@ -109,68 +138,76 @@ function CurrentPlanCard({
   onOpenPortal: () => void
   loading:      boolean
 }) {
-  const planData   = PLANS[plan as PlanKey] ?? PLANS.basic
-  const statusInfo = STATUS_LABELS[sub?.subscriptionStatus ?? 'inactive']
-  const isActive   = ['active', 'trialing'].includes(sub?.subscriptionStatus ?? '')
+  const { t, fmtDate } = useI18n()
+  const planData  = PLANS[plan as PlanKey] ?? PLANS.basic
+  const statusKey = sub?.subscriptionStatus ?? 'inactive'
+  const isActive  = ['active', 'trialing'].includes(sub?.subscriptionStatus ?? '')
+  const isPro     = plan === 'pro'
 
   return (
-    <div className="glass-card p-6">
-      <div className="flex items-start justify-between mb-5">
+    <div className={`glass-card p-6 relative overflow-hidden ${isPro ? 'border-brand-green/20' : ''}`}>
+      {isPro && (
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-green rounded-t-2xl opacity-60" />
+      )}
+
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <p className="text-[11px] font-semibold text-ink-muted uppercase tracking-[0.6px] mb-2">
-            Tu plan actual
+          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.7px] mb-2">
+            {t('subscription.currentPlan')}
           </p>
-          <div className="flex items-baseline gap-2">
-            <h2 className={`text-[30px] font-bold tracking-tight ${planData.color}`}>
+          <div className="flex items-baseline gap-3">
+            <h2 className={`text-[36px] font-black tracking-tight leading-none ${planData.color}`}>
               {planData.label}
             </h2>
             {sub?.amount != null && (
-              <span className="text-[16px] text-ink-secondary font-medium">
-                ${(sub.amount / 100).toFixed(0)}/{sub.interval === 'year' ? 'año' : 'mes'}
+              <span className="text-[17px] text-[var(--text-secondary)] font-medium">
+                ${(sub.amount / 100).toFixed(0)}
+                <span className="text-[13px] text-[var(--text-muted)] ml-0.5">
+                  /{sub.interval === 'year' ? t('common.year') : t('common.month')}
+                </span>
               </span>
             )}
           </div>
-          <p className="text-[13px] text-ink-secondary mt-0.5">{planData.subtitle}</p>
+          <p className="text-[13px] text-[var(--text-secondary)] mt-1">{planData.subtitle}</p>
         </div>
-        {statusInfo && (
-          <span className={`badge text-[12px] ${statusInfo.color}`}>
-            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-            {statusInfo.label}
-          </span>
-        )}
+        <span className={`badge text-[12px] ${STATUS_STYLES[statusKey] ?? STATUS_STYLES.inactive}`}>
+          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+          {t(`status.${statusKey}` as Parameters<ReturnType<typeof useI18n>['t']>[0])}
+        </span>
       </div>
 
-      {/* Billing info */}
       {sub && (
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-dark-border">
-            <p className="text-[11px] text-ink-muted uppercase tracking-[0.5px] mb-1">Próxima renovación</p>
-            <p className="text-[14px] font-semibold text-ink-primary">
-              {sub.currentPeriodEnd
-                ? format(new Date(sub.currentPeriodEnd), "d MMM yyyy", { locale: es })
-                : '—'}
-            </p>
-          </div>
-          <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-dark-border">
-            <p className="text-[11px] text-ink-muted uppercase tracking-[0.5px] mb-1">Facturación</p>
-            <p className="text-[14px] font-semibold text-ink-primary capitalize">
-              {sub.interval === 'year' ? 'Anual' : sub.interval === 'month' ? 'Mensual' : '—'}
-            </p>
-          </div>
-          <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-dark-border">
-            <p className="text-[11px] text-ink-muted uppercase tracking-[0.5px] mb-1">Estado</p>
-            <p className="text-[14px] font-semibold text-ink-primary">
-              {sub.cancelAtPeriodEnd ? 'Cancela al vencer' : isActive ? 'Al día ✓' : '—'}
-            </p>
-          </div>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            {
+              label: t('subscription.nextRenewal'),
+              value: sub.currentPeriodEnd
+                ? fmtDate(new Date(sub.currentPeriodEnd), { day: 'numeric', month: 'short', year: 'numeric' })
+                : '—',
+            },
+            {
+              label: t('subscription.billing'),
+              value: sub.interval === 'year' ? t('subscription.annual') : sub.interval === 'month' ? t('subscription.monthly') : '—',
+            },
+            {
+              label: t('subscription.state'),
+              value: sub.cancelAtPeriodEnd
+                ? t('subscription.cancelAtEnd')
+                : isActive ? `${t('subscription.upToDate')} ✓` : '—',
+            },
+          ].map(item => (
+            <div key={item.label} className="px-4 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)]">
+              <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-[0.5px] mb-1.5">{item.label}</p>
+              <p className="text-[14px] font-semibold text-[var(--text)]">{item.value}</p>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Manage button */}
       {isActive && (
         <button onClick={onOpenPortal} disabled={loading} className="btn-secondary">
           {loading ? (
-            <span className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white sp" />
+            <span className="w-4 h-4 rounded-full border-2 border-[var(--border-hover)] border-t-[var(--text)] sp" />
           ) : (
             <>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
@@ -178,7 +215,7 @@ function CurrentPlanCard({
                 <rect x="1" y="4" width="22" height="16" rx="2"/>
                 <line x1="1" y1="10" x2="23" y2="10"/>
               </svg>
-              Gestionar facturación
+              {t('subscription.manageBilling')}
             </>
           )}
         </button>
@@ -194,144 +231,139 @@ function PlanCard({
   isCurrent,
   onSelect,
   loading,
+  delay = 0,
 }: {
   planKey:   PlanKey
   annual:    boolean
   isCurrent: boolean
   onSelect:  () => void
   loading:   boolean
+  delay?:    number
 }) {
-  const plan  = PLANS[planKey]
-  const price = annual ? plan.annual : plan.monthly
-  const annualSavingPct = Math.round((1 - plan.annual / plan.monthly) * 100)
-  const isPro = planKey === 'pro'
+  const { t } = useI18n()
+  const plan      = PLANS[planKey]
+  const price     = annual ? plan.annual : plan.monthly
+  const savingPct = Math.round((1 - plan.annual / plan.monthly) * 100)
+  const isPro     = planKey === 'pro'
 
   return (
-    <div className={`
-      relative glass-card p-7 flex flex-col gap-5 transition-all duration-200
-      ${isPro ? 'border-brand-green/40 shadow-green-glow' : ''}
-      ${isCurrent ? 'ring-2 ring-brand-green/30' : ''}
-    `}>
-      {/* Popular badge */}
-      {plan.badge && (
-        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-          <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-brand-green text-[#003d1f] shadow-green-glow whitespace-nowrap">
-            {plan.badge}
-          </span>
-        </div>
-      )}
-
-      {/* Header */}
-      <div>
-        <p className={`text-[14px] font-bold uppercase tracking-wider mb-1 ${plan.color}`}>
-          {plan.label}
-        </p>
-        <p className="text-[13px] text-ink-secondary">{plan.subtitle}</p>
-      </div>
-
-      {/* Price */}
-      <div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-[13px] text-ink-secondary">$</span>
-          <span className="text-[48px] font-black tracking-tight text-ink-primary leading-none">
-            {price}
-          </span>
-          <span className="text-[14px] text-ink-secondary">/mes</span>
-        </div>
-        {annual ? (
-          <p className="text-[12px] text-ink-muted mt-1.5">
-            Billed ${price * 12}/año
-            {' · '}
-            <span className="text-brand-green font-semibold">Ahorra {annualSavingPct}%</span>
-          </p>
-        ) : (
-          <p className="text-[12px] text-ink-muted mt-1.5">
-            O <span className="text-brand-green font-semibold">${plan.annual}/mes</span> con plan anual
-          </p>
-        )}
-      </div>
-
-      {/* CTA */}
-      <button
-        onClick={onSelect}
-        disabled={isCurrent || loading}
-        className={isCurrent
-          ? 'btn-secondary opacity-60 cursor-default w-full'
-          : isPro
-          ? 'btn-primary w-full text-[14px] py-3'
-          : 'btn-secondary w-full text-[14px] py-3'}
+    <FadeContent delay={delay} className="h-full">
+      <div
+        className={`
+          relative glass-card p-8 flex flex-col gap-6 transition-all duration-200 h-full
+          ${isPro ? 'border-brand-green/30' : ''}
+          ${isCurrent ? 'ring-2 ring-brand-green/25' : ''}
+        `}
+        style={isPro ? { boxShadow: '0 0 0 1px rgba(0,214,114,0.12), 0 8px 32px rgba(0,0,0,0.4), 0 0 48px rgba(0,214,114,0.05)' } : undefined}
       >
-        {loading ? (
-          <span className="w-4 h-4 rounded-full border-2 border-[#003d1f]/30 border-t-[#003d1f] sp" />
-        ) : isCurrent ? (
-          '✓ Plan actual'
-        ) : (
-          plan.cta
-        )}
-      </button>
-
-      {/* Divider */}
-      <div className="border-t border-dark-border" />
-
-      {/* Features */}
-      <ul className="flex flex-col gap-2.5">
-        {plan.features.map((f, i) => (
-          <li key={i} className="flex items-center gap-2.5">
-            {f.included ? <Check /> : <X />}
-            <span className={`text-[13px] ${f.included ? 'text-ink-secondary' : 'text-ink-muted line-through'}`}>
-              {f.text}
+        {plan.badge && (
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+            <span className="px-3.5 py-1 rounded-full text-[11px] font-bold bg-brand-green text-[#003d1f] whitespace-nowrap"
+                  style={{ boxShadow: '0 2px 12px rgba(0,214,114,0.4)' }}>
+              {plan.badge}
             </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
+          </div>
+        )}
 
-// ─── ROI Banner ───────────────────────────────────────────────────
-function RoiBanner() {
-  return (
-    <div className="glass-card p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 border-brand-purple/20">
-      <div className="w-10 h-10 rounded-xl bg-brand-purple/15 flex items-center justify-center flex-shrink-0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}
-             strokeLinecap="round" className="w-5 h-5 text-brand-purple">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-          <polyline points="16 7 22 7 22 13"/>
-        </svg>
+        {/* Header */}
+        <div>
+          <p className={`text-[12px] font-bold uppercase tracking-widest mb-1.5 ${plan.color}`}>
+            {plan.label}
+          </p>
+          <p className="text-[13px] text-[var(--text-secondary)]">{plan.subtitle}</p>
+        </div>
+
+        {/* Price — key forces re-mount animation on billing toggle */}
+        <div key={annual ? 'a' : 'm'} className="animate-fade-in">
+          <div className="flex items-start gap-0.5">
+            <span className="text-[15px] text-[var(--text-secondary)] mt-3 font-medium">$</span>
+            <span className={`text-[56px] font-black tracking-tight leading-none ${isPro ? 'text-brand-green' : 'text-[var(--text)]'}`}>
+              {price}
+            </span>
+            <span className="text-[13px] text-[var(--text-muted)] mt-4 ml-1">/{t('common.month')}</span>
+          </div>
+          <p className="text-[12px] text-[var(--text-muted)] mt-2">
+            {annual ? (
+              <>
+                <span className="text-[var(--text-secondary)] font-medium">${price * 12}</span>
+                {' '}{t('subscription.billedAnnually')} ·{' '}
+                <span className="text-brand-green font-semibold">
+                  {t('subscription.save', { pct: String(savingPct) })}
+                </span>
+              </>
+            ) : (
+              <>
+                Plan anual: <span className="text-brand-green font-semibold">${plan.annual}/{t('common.month')}</span>
+              </>
+            )}
+          </p>
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={onSelect}
+          disabled={isCurrent || loading}
+          className={
+            isCurrent ? 'btn-secondary opacity-60 cursor-default w-full py-3 text-[14px]' :
+            isPro      ? 'btn-primary w-full text-[14px] py-3.5' :
+                         'btn-secondary w-full text-[14px] py-3'
+          }
+        >
+          {loading ? (
+            <span className="w-4 h-4 rounded-full border-2 border-[#003d1f]/30 border-t-[#003d1f] sp" />
+          ) : isCurrent ? (
+            <><CheckIcon className="w-4 h-4" /> {t('subscription.currentPlanCta')}</>
+          ) : (
+            plan.cta
+          )}
+        </button>
+
+        <div className="border-t border-[var(--border)]" />
+
+        {/* Features */}
+        <ul className="flex flex-col gap-3">
+          {plan.features.map((f, i) => (
+            <li key={i} className="flex items-center gap-3">
+              {f.included
+                ? <span className="w-5 h-5 rounded-full bg-brand-green/15 flex items-center justify-center flex-shrink-0">
+                    <CheckIcon className="w-3 h-3 text-brand-green" />
+                  </span>
+                : <span className="w-5 h-5 rounded-full bg-[var(--bg-surface)] flex items-center justify-center flex-shrink-0">
+                    <XIcon />
+                  </span>
+              }
+              <span className={`text-[13px] ${f.included ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)] line-through'}`}>
+                {f.text}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <div>
-        <p className="text-[14px] font-semibold text-ink-primary">
-          ROI promedio de <span className="text-brand-green">10x</span> vs contratar un community manager
-        </p>
-        <p className="text-[12px] text-ink-secondary mt-0.5">
-          Un CM en LATAM cuesta $400–800/mes. SmartPost Pro hace el trabajo por $49/mes con plan anual.
-        </p>
-      </div>
-    </div>
+    </FadeContent>
   )
 }
 
 // ─── Page ─────────────────────────────────────────────────────────
 export default function SuscripcionPage() {
-  const { data: session }           = useSession()
-  const [sub, setSub]               = useState<SubscriptionData | null>(null)
-  const [loadingData, setLoadingData] = useState(true)
-  const [portalLoading, setPortalLoading]       = useState(false)
-  const [checkoutLoading, setCheckoutLoading]   = useState<string | null>(null)
-  const [annual, setAnnual]         = useState(true) // Annual by default — maximize LTV
-  const [error, setError]           = useState('')
+  const { t } = useI18n()
+  const [sub, setSub]                         = useState<SubscriptionData | null>(null)
+  const [loadingData, setLoadingData]         = useState(true)
+  const [portalLoading, setPortalLoading]     = useState(false)
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+  const [annual, setAnnual]                   = useState(true)
+  const [error, setError]                     = useState('')
 
   useEffect(() => {
     fetch('/api/stripe/subscription')
       .then(r => r.json())
       .then((data: SubscriptionData) => {
         setSub(data)
-        // Detect if current subscription is annual
         if (data.interval === 'year') setAnnual(true)
         else if (data.interval === 'month') setAnnual(false)
       })
-      .catch(() => setError('Error al cargar los datos de suscripción'))
+      .catch(() => setError(t('common.error')))
       .finally(() => setLoadingData(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function openPortal() {
@@ -340,10 +372,10 @@ export default function SuscripcionPage() {
     try {
       const res  = await fetch('/api/stripe/portal', { method: 'POST' })
       const data = await res.json() as { url?: string; error?: string }
-      if (!res.ok || !data.url) throw new Error(data.error ?? 'Error al abrir portal')
+      if (!res.ok || !data.url) throw new Error(data.error ?? t('common.error'))
       window.location.href = data.url
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error desconocido')
+      setError(e instanceof Error ? e.message : t('common.error'))
       setPortalLoading(false)
     }
   }
@@ -358,30 +390,26 @@ export default function SuscripcionPage() {
         body:    JSON.stringify({ plan: planKey, interval: annual ? 'year' : 'month' }),
       })
       const data = await res.json() as { url?: string; error?: string }
-      if (!res.ok || !data.url) throw new Error(data.error ?? 'Error al crear sesión')
+      if (!res.ok || !data.url) throw new Error(data.error ?? t('common.error'))
       window.location.href = data.url
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error desconocido')
+      setError(e instanceof Error ? e.message : t('common.error'))
       setCheckoutLoading(null)
     }
   }
 
-  const currentPlan    = sub?.plan ?? session?.user.plan ?? 'basic'
-  const isActive       = ['active', 'trialing'].includes(sub?.subscriptionStatus ?? '')
-  const showPlanPicker = !isActive || true // Always show — allows upgrades
+  const currentPlan = sub?.plan ?? 'basic'
+  const isActive    = ['active', 'trialing'].includes(sub?.subscriptionStatus ?? '')
 
   return (
     <div className="flex flex-col min-h-full">
-      <TopBar
-        title="Suscripción"
-        subtitle="Gestiona tu plan y facturación"
-      />
+      <TopBar title={t('subscription.title')} subtitle={t('subscription.subtitle')} />
 
-      <div className="flex-1 p-8 flex flex-col gap-8 animate-fade-in max-w-4xl">
+      <div className="flex-1 p-8 flex flex-col gap-8 animate-fade-in">
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[13px]" role="alert">
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[13px]" role="alert">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 flex-shrink-0">
               <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
             </svg>
@@ -389,14 +417,25 @@ export default function SuscripcionPage() {
           </div>
         )}
 
-        {/* Current plan (only when active) */}
+        {/* Loading skeleton */}
+        {loadingData && (
+          <div className="glass-card p-6 flex flex-col gap-3">
+            {[80, 60, 70].map((w, i) => (
+              <div key={i} className="h-4 rounded-lg bg-[var(--border)] animate-pulse" style={{ width: `${w}%` }} />
+            ))}
+          </div>
+        )}
+
+        {/* Current plan */}
         {!loadingData && isActive && (
-          <CurrentPlanCard
-            sub={sub}
-            plan={currentPlan}
-            onOpenPortal={openPortal}
-            loading={portalLoading}
-          />
+          <FadeContent>
+            <CurrentPlanCard
+              sub={sub}
+              plan={currentPlan}
+              onOpenPortal={openPortal}
+              loading={portalLoading}
+            />
+          </FadeContent>
         )}
 
         {/* Trial notice */}
@@ -405,11 +444,11 @@ export default function SuscripcionPage() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-brand-purple flex-shrink-0">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <p className="text-[13px] text-ink-secondary">
+            <p className="text-[13px] text-[var(--text-secondary)]">
               Estás en período de prueba.{' '}
               {sub.currentPeriodEnd && (
-                <>Vence el <strong className="text-ink-primary">
-                  {format(new Date(sub.currentPeriodEnd), "d 'de' MMMM", { locale: es })}
+                <>Vence el <strong className="text-[var(--text)]">
+                  {new Date(sub.currentPeriodEnd).toLocaleDateString('es', { day: 'numeric', month: 'long' })}
                 </strong>. </>
               )}
               Elige un plan para no perder el acceso.
@@ -418,47 +457,31 @@ export default function SuscripcionPage() {
         )}
 
         {/* Plan picker */}
-        {showPlanPicker && (
-          <div className="flex flex-col gap-6">
-            {/* Section title */}
-            <div>
-              <h3 className="text-[18px] font-bold text-ink-primary">
-                {isActive && currentPlan !== 'basic' ? 'Tu plan' : isActive ? 'Actualiza tu plan' : 'Elige tu plan'}
-              </h3>
-              <p className="text-[13px] text-ink-secondary mt-1">
-                Sin permanencia. Cancela cuando quieras desde el portal de facturación.
-              </p>
-            </div>
+        {!loadingData && (
+          <div className="flex flex-col gap-7">
 
-            {/* Monthly / Annual toggle */}
-            <div className="flex items-center gap-4">
-              <span className={`text-[13px] font-medium transition-colors ${!annual ? 'text-ink-primary' : 'text-ink-muted'}`}>
-                Mensual
-              </span>
-              <button
-                onClick={() => setAnnual(v => !v)}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 cursor-pointer ${annual ? 'bg-brand-green' : 'bg-dark-surface border border-dark-border'}`}
-                aria-checked={annual}
-                role="switch"
-                aria-label="Facturación anual"
-              >
-                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${annual ? 'translate-x-6' : 'translate-x-0.5'}`} />
-              </button>
-              <div className="flex items-center gap-2">
-                <span className={`text-[13px] font-medium transition-colors ${annual ? 'text-ink-primary' : 'text-ink-muted'}`}>
-                  Anual
-                </span>
-                {annual && (
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-brand-green/15 text-brand-green">
-                    Ahorra hasta 35%
-                  </span>
-                )}
+            {/* Header + toggle */}
+            <FadeContent delay={100}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="text-[20px] font-bold text-[var(--text)] tracking-tight">
+                    {isActive && currentPlan !== 'basic'
+                      ? t('subscription.currentPlan')
+                      : isActive
+                      ? t('subscription.upgrade')
+                      : t('subscription.choosePlan')}
+                  </h3>
+                  <p className="text-[13px] text-[var(--text-secondary)] mt-1">
+                    {t('subscription.noContract')} · {t('subscription.cancelAnytime')}
+                  </p>
+                </div>
+                <BillingToggle annual={annual} onChange={setAnnual} />
               </div>
-            </div>
+            </FadeContent>
 
             {/* Plan cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-              {(Object.keys(PLANS) as PlanKey[]).map(key => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {(Object.keys(PLANS) as PlanKey[]).map((key, i) => (
                 <PlanCard
                   key={key}
                   planKey={key}
@@ -466,33 +489,48 @@ export default function SuscripcionPage() {
                   isCurrent={isActive && currentPlan === key}
                   onSelect={() => startCheckout(key)}
                   loading={checkoutLoading === key}
+                  delay={i * 120}
                 />
               ))}
             </div>
 
-            {/* ROI banner */}
-            <RoiBanner />
+            {/* Trust row */}
+            <FadeContent delay={250}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="glass-card p-5 flex items-center gap-4 border-brand-purple/15">
+                  <div className="w-10 h-10 rounded-xl bg-brand-purple/15 flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}
+                         strokeLinecap="round" className="w-5 h-5 text-brand-purple">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                      <polyline points="16 7 22 7 22 13"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-[var(--text)]">
+                      ROI promedio de <span className="text-brand-green">10x</span> vs community manager
+                    </p>
+                    <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                      Un CM cuesta $400–800/mes. SmartPost Pro a $49/mes anual.
+                    </p>
+                  </div>
+                </div>
 
-            {/* Trust signals */}
-            <div className="flex flex-wrap items-center justify-center gap-6 text-[12px] text-ink-muted pt-2">
-              {[
-                '✓ Sin contratos de permanencia',
-                '✓ Cancela en cualquier momento',
-                '✓ Pago seguro con Stripe',
-                '✓ Soporte en español',
-              ].map(item => (
-                <span key={item}>{item}</span>
-              ))}
-            </div>
-          </div>
-        )}
+                <div className="glass-card p-5 flex flex-wrap items-center gap-x-5 gap-y-2.5">
+                  {[
+                    t('subscription.noContract'),
+                    t('subscription.cancelAnytime'),
+                    t('subscription.securePayment'),
+                    t('subscription.support'),
+                  ].map(item => (
+                    <span key={item} className="flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
+                      <CheckIcon className="w-3.5 h-3.5 text-brand-green flex-shrink-0" />
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </FadeContent>
 
-        {/* Loading skeleton */}
-        {loadingData && (
-          <div className="glass-card p-6 flex flex-col gap-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-4 rounded-lg bg-white/[0.06] animate-pulse" style={{ width: `${[80, 60, 70][i]}%` }} />
-            ))}
           </div>
         )}
 

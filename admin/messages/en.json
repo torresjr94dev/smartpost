@@ -1,0 +1,144 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "close": "Close",
+    "month": "mo",
+    "year": "yr"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "posts": "Posts",
+    "subscription": "Subscription",
+    "settings": "Settings",
+    "logout": "Sign out",
+    "adminPanel": "Admin Panel"
+  },
+  "auth": {
+    "pageTitle": "Sign in",
+    "formTitle": "Access your panel",
+    "formSubtitle": "Manage your social media with intelligence.",
+    "email": "Email address",
+    "emailPlaceholder": "you@company.com",
+    "password": "Password",
+    "passwordPlaceholder": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "loginButton": "Sign in",
+    "loggingIn": "Signing in...",
+    "errorEmpty": "Please fill in all fields",
+    "errorCredentials": "Invalid email or password",
+    "errorConnection": "Connection error. Please try again.",
+    "brandTagline": "Post more.\nWork less.",
+    "brandSub": "Automate Facebook, Instagram & LinkedIn via WhatsApp.",
+    "feature1": "Facebook, Instagram & LinkedIn",
+    "feature2": "WhatsApp Business API",
+    "feature3": "Automatic scheduling",
+    "feature4": "Real-time analytics",
+    "copyright": "SmartPost · TorresDev"
+  },
+  "dashboard": {
+    "greeting": "Hello, {name}",
+    "subtitle": "Your activity summary",
+    "metrics": {
+      "totalPosts": "Total posts",
+      "totalPostsSub": "All statuses",
+      "published": "Published",
+      "publishedSub": "On social media",
+      "reach": "Total reach",
+      "reachSub": "Cumulative impressions",
+      "interactions": "Interactions",
+      "interactionsSub": "{likes} likes · {comments} comments"
+    },
+    "accounts": {
+      "title": "Connected accounts",
+      "empty": "No accounts connected yet.",
+      "connectNow": "Connect now →"
+    },
+    "recentPosts": {
+      "title": "Recent posts",
+      "empty": "No posts yet."
+    }
+  },
+  "status": {
+    "published": "Published",
+    "scheduled": "Scheduled",
+    "draft": "Draft",
+    "failed": "Failed",
+    "active": "Active",
+    "trialing": "Trial",
+    "past_due": "Past due",
+    "canceled": "Canceled",
+    "inactive": "Inactive",
+    "connected": "Connected",
+    "expired": "Expired"
+  },
+  "accounts": {
+    "title": "Connected accounts",
+    "subtitle": "Connect your social networks to start publishing",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "reconnect": "Reconnect",
+    "connectedAs": "Connected as",
+    "tokenExpires": "Token expires",
+    "facebook": {
+      "name": "Facebook",
+      "desc": "Post to your Facebook Page"
+    },
+    "instagram": {
+      "name": "Instagram",
+      "desc": "Post to your Instagram Business profile"
+    },
+    "linkedin": {
+      "name": "LinkedIn",
+      "desc": "Post to your LinkedIn profile"
+    }
+  },
+  "posts": {
+    "title": "Posts",
+    "subtitle": "History and status of your posts",
+    "empty": "No posts yet.",
+    "emptyAction": "Create your first post via WhatsApp",
+    "columns": {
+      "content": "Content",
+      "platform": "Platform",
+      "status": "Status",
+      "date": "Date",
+      "metrics": "Metrics"
+    },
+    "likes": "{n} likes",
+    "comments": "{n} comments"
+  },
+  "subscription": {
+    "title": "Subscription",
+    "subtitle": "Manage your plan and billing",
+    "currentPlan": "Your current plan",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "save": "Save {pct}%",
+    "manageBilling": "Manage billing",
+    "choosePlan": "Choose your plan",
+    "upgrade": "Upgrade your plan",
+    "currentPlanCta": "Current plan",
+    "noContract": "No contracts",
+    "cancelAnytime": "Cancel anytime",
+    "securePayment": "Secure Stripe payment",
+    "support": "English support",
+    "billedAnnually": "billed annually",
+    "nextRenewal": "Next renewal",
+    "billing": "Billing",
+    "state": "Status",
+    "cancelAtEnd": "Cancels at period end",
+    "upToDate": "Up to date"
+  }
+}
