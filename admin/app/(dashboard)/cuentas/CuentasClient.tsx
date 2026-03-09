@@ -1,8 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { waitForFB } from '@/components/FacebookSDKLoader'
-import type { FBLoginResponse } from '@/components/FacebookSDKLoader'
+import { useState } from 'react'
 import Image from 'next/image'
 import { differenceInDays } from 'date-fns'
 import { motion } from 'motion/react'
@@ -329,53 +327,11 @@ export default function CuentasClient({
   const getAccount = (platform: string) =>
     localAccounts.find(a => a.platform === platform && a.isActive) ?? null
 
-  /** Facebook + Instagram: use popup via FB JS SDK */
-  const handleFacebookConnect = useCallback(async () => {
-    setError('')
+  /** Facebook + Instagram: FLoB redirect flow (response_type=code required) */
+  function handleFacebookConnect() {
     setLoadingPlatform('facebook')
-
-    let FB
-    try {
-      FB = await waitForFB()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('common.error'))
-      setLoadingPlatform(null)
-      return
-    }
-
-    // FB.login callback must be synchronous — handle async work in a separate function
-    async function onFBLogin(response: FBLoginResponse) {
-      if (response.status !== 'connected' || !response.authResponse) {
-        setLoadingPlatform(null)
-        return
-      }
-      try {
-        const res = await fetch('/api/auth/connect/facebook', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ accessToken: response.authResponse.accessToken }),
-        })
-        const data = await res.json() as { success?: boolean; hasInstagram?: boolean; error?: string }
-        if (!res.ok) throw new Error(data.error ?? t('common.error'))
-
-        window.location.reload()
-      } catch (e) {
-        setError(e instanceof Error ? e.message : t('common.error'))
-        setLoadingPlatform(null)
-      }
-    }
-
-    FB.login((response: FBLoginResponse) => { void onFBLogin(response) }, {
-      scope: [
-        'pages_manage_posts',
-        'pages_read_engagement',
-        'instagram_basic',
-        'instagram_content_publish',
-        'pages_show_list',
-        'business_management',
-      ].join(','),
-    })
-  }, [t])
+    window.location.href = '/api/auth/facebook-redirect?state=connect'
+  }
 
   /** LinkedIn: keep existing redirect flow */
   function handleLinkedInConnect() {

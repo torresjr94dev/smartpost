@@ -19,7 +19,7 @@ export interface FacebookSDK {
   }) => void
   login: (
     callback: (response: FBLoginResponse) => void,
-    options?:  { scope: string; return_scopes?: boolean }
+    options?:  { scope?: string; return_scopes?: boolean; config_id?: string }
   ) => void
   getLoginStatus: (callback: (response: FBLoginResponse) => void) => void
   AppEvents: { logPageView: () => void }

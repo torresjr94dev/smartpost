@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { BlurText } from '@/components/animations/CountUp'
-import { waitForFB } from '@/components/FacebookSDKLoader'
-import type { FBLoginResponse } from '@/components/FacebookSDKLoader'
 
 // ─── SVG Icons ────────────────────────────────────────────────────
 function IconMail() {
@@ -204,50 +202,9 @@ function LoginForm() {
   const [fbLoading, setFbLoading] = useState(false)
   const [error, setError]       = useState('')
 
-  async function handleFacebookLogin() {
-    setError('')
+  function handleFacebookLogin() {
     setFbLoading(true)
-
-    let FB
-    try {
-      FB = await waitForFB()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Facebook SDK no disponible.')
-      setFbLoading(false)
-      return
-    }
-
-    // FB.login callback must be synchronous — handle async work in a separate function
-    async function onFBLogin(response: FBLoginResponse) {
-      if (response.status !== 'connected' || !response.authResponse) {
-        setFbLoading(false)
-        return
-      }
-      try {
-        const res = await fetch('/api/auth/facebook-login', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ accessToken: response.authResponse.accessToken }),
-        })
-        const data = await res.json() as { success?: boolean; error?: string }
-        if (!res.ok) {
-          if (data.error === 'account_not_found') {
-            setError('No existe una cuenta con este Facebook. Inicia sesión con tu correo.')
-          } else {
-            setError('Error al iniciar sesión con Facebook.')
-          }
-          setFbLoading(false)
-          return
-        }
-        router.push('/dashboard')
-        router.refresh()
-      } catch {
-        setError(t('auth.errorConnection'))
-        setFbLoading(false)
-      }
-    }
-
-    FB.login((response: FBLoginResponse) => { void onFBLogin(response) }, { scope: 'public_profile' })
+    window.location.href = '/api/auth/facebook-redirect?state=login'
   }
 
   async function handleSubmit(e: React.FormEvent) {
