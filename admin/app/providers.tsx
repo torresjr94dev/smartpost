@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, type ReactNode } from 'react'
+import { SessionProvider } from 'next-auth/react'
 import { I18nProvider } from '@/lib/i18n'
 import { FacebookSDKLoader } from '@/components/FacebookSDKLoader'
 
@@ -44,11 +45,13 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <>
       <ThemeScript />
-      <I18nProvider defaultLocale="es">
-        <ThemeSyncer />
-        <FacebookSDKLoader />
-        {children}
-      </I18nProvider>
+      <SessionProvider>
+        <I18nProvider defaultLocale="es">
+          <ThemeSyncer />
+          <FacebookSDKLoader />
+          {children}
+        </I18nProvider>
+      </SessionProvider>
     </>
   )
 }

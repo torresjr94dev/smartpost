@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
+import { Select } from '@/components/ui/Select'
 import { AnimatedList } from '@/components/animations/AnimatedList'
 import { useI18n } from '@/lib/i18n'
 
@@ -104,70 +105,80 @@ function Filters({
   const [form, setForm] = useState({ platform, status, dateFrom, dateTo })
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
-  const selectClass = "w-full px-3 py-2 text-sm outline-none transition-all duration-150 cursor-pointer rounded-lg font-body"
+  const inputClass = "w-full px-3 py-2 rounded-xl text-sm font-medium outline-none transition-all duration-150"
+
+  const platformOptions = [
+    { value: '',          label: t('common.all') },
+    { value: 'facebook',  label: 'Facebook' },
+    { value: 'instagram', label: 'Instagram' },
+    { value: 'linkedin',  label: 'LinkedIn' },
+  ]
+
+  const statusOptions = [
+    { value: '',          label: t('common.all') },
+    { value: 'published', label: t('status.published') },
+    { value: 'scheduled', label: t('status.scheduled') },
+    { value: 'draft',     label: t('status.draft') },
+    { value: 'failed',    label: t('status.failed') },
+  ]
 
   return (
     <div
       className="rounded-2xl p-4 flex flex-wrap gap-3 items-end"
       style={{
-        background:   'var(--bg-card)',
-        border:       '1px solid var(--border)',
+        background:     'var(--bg-card)',
+        border:         '1px solid var(--border)',
         backdropFilter: 'blur(12px)',
       }}
     >
       {/* Platform */}
-      <div className="flex flex-col gap-1.5 min-w-[130px]">
-        <label className="font-body text-2xs font-semibold uppercase tracking-[0.6px]"
-               style={{ color: 'var(--text-muted)' }}>
-          {t('posts.columns.platform')}
-        </label>
-        <select value={form.platform} onChange={e => set('platform', e.target.value)}
-                className={selectClass}
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>
-          <option value="">{t('common.all')}</option>
-          <option value="facebook">Facebook</option>
-          <option value="instagram">Instagram</option>
-          <option value="linkedin">LinkedIn</option>
-        </select>
+      <div className="min-w-[140px]">
+        <Select
+          label={t('posts.columns.platform')}
+          value={form.platform}
+          onChange={v => set('platform', v)}
+          options={platformOptions}
+        />
       </div>
 
       {/* Status */}
-      <div className="flex flex-col gap-1.5 min-w-[130px]">
-        <label className="font-body text-2xs font-semibold uppercase tracking-[0.6px]"
-               style={{ color: 'var(--text-muted)' }}>
-          {t('posts.columns.status')}
-        </label>
-        <select value={form.status} onChange={e => set('status', e.target.value)}
-                className={selectClass}
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)' }}>
-          <option value="">{t('common.all')}</option>
-          <option value="published">{t('status.published')}</option>
-          <option value="scheduled">{t('status.scheduled')}</option>
-          <option value="draft">{t('status.draft')}</option>
-          <option value="failed">{t('status.failed')}</option>
-        </select>
+      <div className="min-w-[140px]">
+        <Select
+          label={t('posts.columns.status')}
+          value={form.status}
+          onChange={v => set('status', v)}
+          options={statusOptions}
+        />
       </div>
 
       {/* Date from */}
-      <div className="flex flex-col gap-1.5 min-w-[130px]">
-        <label className="font-body text-2xs font-semibold uppercase tracking-[0.6px]"
-               style={{ color: 'var(--text-muted)' }}>
+      <div className="flex flex-col gap-1.5 min-w-[140px]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.6px]"
+           style={{ color: 'var(--text-muted)' }}>
           Desde
-        </label>
-        <input type="date" value={form.dateFrom} onChange={e => set('dateFrom', e.target.value)}
-               className={selectClass}
-               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+        </p>
+        <input
+          type="date"
+          value={form.dateFrom}
+          onChange={e => set('dateFrom', e.target.value)}
+          className={inputClass}
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
+        />
       </div>
 
       {/* Date to */}
-      <div className="flex flex-col gap-1.5 min-w-[130px]">
-        <label className="font-body text-2xs font-semibold uppercase tracking-[0.6px]"
-               style={{ color: 'var(--text-muted)' }}>
+      <div className="flex flex-col gap-1.5 min-w-[140px]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.6px]"
+           style={{ color: 'var(--text-muted)' }}>
           Hasta
-        </label>
-        <input type="date" value={form.dateTo} onChange={e => set('dateTo', e.target.value)}
-               className={selectClass}
-               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)' }} />
+        </p>
+        <input
+          type="date"
+          value={form.dateTo}
+          onChange={e => set('dateTo', e.target.value)}
+          className={inputClass}
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
+        />
       </div>
 
       <div className="flex gap-2 pb-0.5">

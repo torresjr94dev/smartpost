@@ -6,7 +6,7 @@ interface TopBarProps {
 
 export default function TopBar({ title, subtitle, actions }: TopBarProps) {
   return (
-    <header className="flex items-center justify-between px-8 py-5 border-b border-[var(--border)] bg-[var(--bg-card)]/50 backdrop-blur-sm flex-shrink-0">
+    <header className="h-[72px] flex items-center justify-between px-8 border-b border-[var(--border)] bg-[var(--bg-card)]/50 backdrop-blur-sm flex-shrink-0">
       <div>
         <h1 className="text-[20px] font-bold text-[var(--text)] tracking-tight">{title}</h1>
         {subtitle && (

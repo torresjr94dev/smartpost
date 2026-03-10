@@ -1,7 +1,7 @@
 /**
  * Next.js Middleware — protege rutas del dashboard.
  * Redirige a /login si no hay sesión activa.
- * Redirige a /suscripcion si la suscripción está cancelada/vencida.
+ * Redirige a /onboarding si la suscripción está inactiva/vencida/en onboarding.
  */
 
 import { withAuth } from 'next-auth/middleware'
@@ -9,31 +9,47 @@ import type { NextRequestWithAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 
 // Rutas que NO requieren autenticación
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/webhooks']
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth',
+  '/api/webhooks',
+  '/api/facebook',
+]
+
+// Statuses que bloquean acceso al dashboard → redirigen a /onboarding
+const BLOCKED_STATUSES = ['onboarding', 'canceled', 'past_due', 'incomplete']
+
+// Statuses con acceso completo al dashboard
+const ACTIVE_STATUSES = ['active', 'trialing']
 
 export default withAuth(
   function middleware(req: NextRequestWithAuth) {
     const { pathname } = req.nextUrl
-    const token = req.nextauth?.token
+    const token  = req.nextauth?.token
+    const status = (token as Record<string, unknown>)?.subscriptionStatus as string | undefined
 
-    // Permitir rutas públicas sin verificación adicional
+    // Permitir rutas públicas
     if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
       return NextResponse.next()
     }
 
-    // Si está en /suscripcion, siempre permitir (para que puedan pagar)
+    // /onboarding y /api/onboarding: accesibles sin suscripción activa
+    if (pathname.startsWith('/onboarding') || pathname.startsWith('/api/onboarding')) {
+      // Si ya tiene plan activo → redirigir al dashboard (no necesitan onboarding)
+      if (status && ACTIVE_STATUSES.includes(status)) {
+        return NextResponse.redirect(new URL('/dashboard', req.url))
+      }
+      return NextResponse.next()
+    }
+
+    // /suscripcion: accesible para usuarios con plan activo
     if (pathname.startsWith('/suscripcion')) {
       return NextResponse.next()
     }
 
-    // Verificar subscription status para rutas protegidas del dashboard
-    if (token) {
-      const status = (token as Record<string, unknown>).subscriptionStatus as string | undefined
-      const blockedStatuses = ['canceled', 'past_due']
-
-      if (status && blockedStatuses.includes(status) && !pathname.startsWith('/suscripcion')) {
-        return NextResponse.redirect(new URL('/suscripcion', req.url))
-      }
+    // Dashboard y demás rutas: bloquear si no tienen suscripción activa
+    if (token && status && BLOCKED_STATUSES.includes(status)) {
+      return NextResponse.redirect(new URL('/onboarding', req.url))
     }
 
     return NextResponse.next()
@@ -50,7 +66,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    // Proteger todo excepto Next.js internals, archivos estáticos y webhooks
-    '/((?!_next/static|_next/image|favicon.ico|api/webhooks).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/webhooks|smartpost_logo).*)',
   ],
 }

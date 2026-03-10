@@ -22,7 +22,8 @@ import { encryptToken } from '@/lib/crypto'
 import { encode } from 'next-auth/jwt'
 import { cookies } from 'next/headers'
 
-const GRAPH = 'https://graph.facebook.com/v20.0'
+const GRAPH    = 'https://graph.facebook.com/v20.0'
+const BASE_URL = process.env.NEXTAUTH_URL!
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
   // Handle user-denied OAuth
   if (error || !code) {
     const dest = state === 'login' ? '/login?error=facebook_denied' : '/cuentas?error=facebook_denied'
-    return NextResponse.redirect(new URL(dest, req.url))
+    return NextResponse.redirect(new URL(dest, BASE_URL))
   }
 
   const appId       = process.env.META_APP_ID!
@@ -101,17 +102,28 @@ export async function GET(req: NextRequest) {
         where:   { platformUserId: meData.id, platform: 'facebook' },
         include: { user: true },
       })
-      const user = fbAccount?.user ?? null
+      let user = fbAccount?.user ?? null
 
       if (!user) {
-        return NextResponse.redirect(new URL('/login?error=account_not_found', req.url))
+        // Auto-create user on first Facebook login
+        // Email placeholder until they set a real one in onboarding
+        const placeholderEmail = `fb_${meData.id}@pending.sp`
+        user = await prisma.user.upsert({
+          where:  { email: placeholderEmail },
+          create: {
+            email:              placeholderEmail,
+            name:               meData.name,
+            subscriptionStatus: 'onboarding',
+          },
+          update: {},
+        })
       }
       userId = user.id
     } else {
       // Require active session
       const session = await getServerSession(authOptions)
       if (!session) {
-        return NextResponse.redirect(new URL('/login', req.url))
+        return NextResponse.redirect(new URL('/login', BASE_URL))
       }
       userId = session.user.id
     }
@@ -172,7 +184,7 @@ export async function GET(req: NextRequest) {
     if (state === 'login') {
       // Create NextAuth JWT session cookie
       const user = await prisma.user.findUnique({ where: { id: userId } })
-      if (!user) return NextResponse.redirect(new URL('/login', req.url))
+      if (!user) return NextResponse.redirect(new URL('/login', BASE_URL))
 
       const nowSeconds = Math.floor(Date.now() / 1000)
       const maxAge     = 30 * 24 * 60 * 60
@@ -205,14 +217,15 @@ export async function GET(req: NextRequest) {
         maxAge,
       })
 
-      return NextResponse.redirect(new URL('/dashboard', req.url))
+      const dest = user.subscriptionStatus === 'onboarding' ? '/onboarding' : '/dashboard'
+      return NextResponse.redirect(new URL(dest, BASE_URL))
     }
 
-    return NextResponse.redirect(new URL('/cuentas?success=facebook', req.url))
+    return NextResponse.redirect(new URL('/cuentas?success=facebook', BASE_URL))
 
   } catch (err) {
     console.error('[Facebook OAuth]', err)
     const dest = state === 'login' ? '/login?error=facebook_failed' : '/cuentas?error=facebook_failed'
-    return NextResponse.redirect(new URL(dest, req.url))
+    return NextResponse.redirect(new URL(dest, BASE_URL))
   }
 }

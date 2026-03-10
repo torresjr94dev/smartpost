@@ -1,6 +1,11 @@
 /**
  * Creates a Stripe Checkout Session for new subscriptions.
  * If the user doesn't have a stripeCustomerId, creates one first.
+ *
+ * Body params:
+ *   plan     — 'basic' | 'pro'
+ *   interval — 'month' | 'year'
+ *   from     — 'onboarding' (optional) → adds 7-day trial + different redirect URLs
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -8,6 +13,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe, getPriceId } from '@/lib/stripe'
+
+const TRIAL_DAYS = 7
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -17,10 +24,12 @@ export async function POST(req: NextRequest) {
 
   let plan: string
   let interval: 'month' | 'year'
+  let fromOnboarding: boolean
   try {
-    const body = await req.json() as { plan?: string; interval?: string }
-    plan     = body.plan     ?? 'basic'
-    interval = body.interval === 'year' ? 'year' : 'month'
+    const body   = await req.json() as { plan?: string; interval?: string; from?: string }
+    plan          = body.plan     ?? 'basic'
+    interval      = body.interval === 'year' ? 'year' : 'month'
+    fromOnboarding = body.from === 'onboarding'
   } catch {
     return NextResponse.json({ error: 'Body inválido' }, { status: 400 })
   }
@@ -60,19 +69,25 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 
+    // Onboarding: session-refresh after success so JWT gets the new subscriptionStatus
+    const successUrl = fromOnboarding
+      ? `${baseUrl}/api/auth/session-refresh?callbackUrl=/dashboard`
+      : `${baseUrl}/suscripcion?checkout=success`
+    const cancelUrl = fromOnboarding
+      ? `${baseUrl}/onboarding?checkout=canceled`
+      : `${baseUrl}/suscripcion?checkout=canceled`
+
     const checkoutSession = await stripe.checkout.sessions.create({
-      customer:            customerId,
-      mode:                'subscription',
+      customer:             customerId,
+      mode:                 'subscription',
       payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/suscripcion?checkout=success`,
-      cancel_url:  `${baseUrl}/suscripcion?checkout=canceled`,
-      metadata: {
-        userId: user.id,
-        plan,
-      },
+      line_items:           [{ price: priceId, quantity: 1 }],
+      success_url:          successUrl,
+      cancel_url:           cancelUrl,
+      metadata:             { userId: user.id, plan },
       subscription_data: {
-        metadata: { userId: user.id, plan },
+        trial_period_days: fromOnboarding ? TRIAL_DAYS : undefined,
+        metadata:          { userId: user.id, plan },
       },
       allow_promotion_codes: true,
     })

@@ -1,11 +1,31 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import TopBar from '@/components/layout/TopBar'
 import { FadeContent } from '@/components/animations/CountUp'
 import { useI18n } from '@/lib/i18n'
 
 // ─── Types ────────────────────────────────────────────────────────
+interface PaymentMethod {
+  brand:    string
+  last4:    string
+  expMonth: number
+  expYear:  number
+}
+
+interface Invoice {
+  id:         string
+  amount:     number
+  currency:   string
+  date:       string
+  status:     string
+  pdfUrl:     string | null
+  hostedUrl:  string | null
+}
+
 interface SubscriptionData {
   plan:               string
   subscriptionStatus: string
@@ -15,6 +35,10 @@ interface SubscriptionData {
   amount:             number | null
   currency:           string | null
   interval:           string | null
+  trialEnd:           string | null
+  trialDaysLeft:      number | null
+  paymentMethod:      PaymentMethod | null
+  invoices:           Invoice[]
 }
 
 // ─── Pricing config ───────────────────────────────────────────────
@@ -89,6 +113,140 @@ function XIcon() {
          strokeLinecap="round" className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-muted)] opacity-40">
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
+  )
+}
+
+// ─── Payment Method Card ──────────────────────────────────────────
+const BRAND_LABELS: Record<string, string> = {
+  visa: 'VISA', mastercard: 'MC', amex: 'AMEX', discover: 'DISC', jcb: 'JCB', unionpay: 'UP',
+}
+
+function PaymentMethodCard({ pm }: { pm: PaymentMethod | null }) {
+  const brandLabel = pm ? (BRAND_LABELS[pm.brand.toLowerCase()] ?? pm.brand.toUpperCase()) : null
+  return (
+    <div className="glass-card p-6">
+      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.7px] mb-4">
+        Método de pago
+      </p>
+      {pm ? (
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-8 rounded-md bg-[var(--bg-surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
+            <span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight">{brandLabel}</span>
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold text-[var(--text)]">
+              •••• •••• •••• {pm.last4}
+            </p>
+            <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+              Vence {String(pm.expMonth).padStart(2, '0')}/{pm.expYear}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 py-1">
+          <div className="w-10 h-10 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}
+                 strokeLinecap="round" className="w-4 h-4 text-[var(--text-muted)]">
+              <rect x="1" y="4" width="22" height="16" rx="2"/>
+              <line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+          </div>
+          <div>
+            <p className="text-[13px] font-medium text-[var(--text-muted)]">Sin tarjeta registrada</p>
+            <p className="text-[12px] text-[var(--text-muted)] opacity-60 mt-0.5">
+              Agrega un método de pago al suscribirte
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Invoice History ───────────────────────────────────────────────
+function fmtAmount(amount: number, currency: string) {
+  return new Intl.NumberFormat('es', {
+    style: 'currency', currency: currency.toUpperCase(),
+  }).format(amount / 100)
+}
+
+const INV_STATUS_STYLE: Record<string, string> = {
+  paid:  'bg-brand-green/15 text-brand-green',
+  open:  'bg-amber-500/15 text-amber-400',
+  void:  'bg-[var(--bg-surface)] text-[var(--text-muted)]',
+  draft: 'bg-[var(--bg-surface)] text-[var(--text-muted)]',
+}
+const INV_STATUS_LABEL: Record<string, string> = {
+  paid: 'Pagada', open: 'Pendiente', void: 'Anulada', draft: 'Borrador',
+}
+
+function InvoiceHistory({ invoices }: { invoices: Invoice[] }) {
+  return (
+    <div className="glass-card p-6">
+      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.7px] mb-4">
+        Historial de facturas
+      </p>
+      {invoices.length === 0 ? (
+        <div className="flex items-center gap-3 py-2">
+          <div className="w-10 h-10 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}
+                 strokeLinecap="round" className="w-4 h-4 text-[var(--text-muted)]">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <div>
+            <p className="text-[13px] font-medium text-[var(--text-muted)]">Sin facturas aún</p>
+            <p className="text-[12px] text-[var(--text-muted)] opacity-60 mt-0.5">
+              Tus facturas aparecerán aquí tras el primer cobro
+            </p>
+          </div>
+        </div>
+      ) : (
+      <div className="flex flex-col divide-y divide-[var(--border)]">
+        {invoices.map(inv => (
+          <div key={inv.id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--bg-surface)] flex items-center justify-center flex-shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}
+                     strokeLinecap="round" className="w-4 h-4 text-[var(--text-muted)]">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold text-[var(--text)]">
+                  {fmtAmount(inv.amount, inv.currency)}
+                </p>
+                <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+                  {new Date(inv.date).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className={`badge text-[11px] ${INV_STATUS_STYLE[inv.status] ?? INV_STATUS_STYLE.void}`}>
+                {INV_STATUS_LABEL[inv.status] ?? inv.status}
+              </span>
+              {inv.pdfUrl && (
+                <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer"
+                   title="Descargar PDF"
+                   className="w-7 h-7 rounded-lg bg-[var(--bg-surface)] hover:bg-[var(--border)] border border-[var(--border)] flex items-center justify-center transition-colors">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                       strokeLinecap="round" className="w-3.5 h-3.5 text-[var(--text-muted)]">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      )}
+    </div>
   )
 }
 
@@ -345,13 +503,30 @@ function PlanCard({
 
 // ─── Page ─────────────────────────────────────────────────────────
 export default function SuscripcionPage() {
-  const { t } = useI18n()
+  const { t }       = useI18n()
+  const router      = useRouter()
+  const searchParams = useSearchParams()
+
   const [sub, setSub]                         = useState<SubscriptionData | null>(null)
   const [loadingData, setLoadingData]         = useState(true)
   const [portalLoading, setPortalLoading]     = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
   const [annual, setAnnual]                   = useState(true)
   const [error, setError]                     = useState('')
+  const [checkoutStatus, setCheckoutStatus]   = useState<'success' | 'canceled' | null>(null)
+
+  // Read ?checkout=success|canceled from Stripe redirect and clear from URL
+  useEffect(() => {
+    const status = searchParams.get('checkout')
+    if (status === 'success' || status === 'canceled') {
+      setCheckoutStatus(status)
+      router.replace('/suscripcion', { scroll: false })
+      // Auto-dismiss after 8 s
+      const timer = setTimeout(() => setCheckoutStatus(null), 8000)
+      return () => clearTimeout(timer)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     fetch('/api/stripe/subscription')
@@ -373,7 +548,8 @@ export default function SuscripcionPage() {
       const res  = await fetch('/api/stripe/portal', { method: 'POST' })
       const data = await res.json() as { url?: string; error?: string }
       if (!res.ok || !data.url) throw new Error(data.error ?? t('common.error'))
-      window.location.href = data.url
+      window.open(data.url, '_blank', 'noopener,noreferrer')
+      setPortalLoading(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('common.error'))
       setPortalLoading(false)
@@ -407,6 +583,66 @@ export default function SuscripcionPage() {
 
       <div className="flex-1 p-8 flex flex-col gap-8 animate-fade-in">
 
+        {/* Checkout result banner */}
+        {checkoutStatus === 'success' && (
+          <div className="flex items-center justify-between gap-3 px-5 py-4 rounded-2xl animate-fade-in"
+               style={{ background: 'rgba(0,214,114,0.08)', border: '1px solid rgba(0,214,114,0.25)' }}>
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(0,214,114,0.15)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#00d672" strokeWidth={2.5}
+                     strokeLinecap="round" className="w-4 h-4">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </span>
+              <div>
+                <p className="text-[14px] font-semibold" style={{ color: '#00d672' }}>
+                  ¡Pago exitoso! Bienvenido a SmartPost
+                </p>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Tu suscripción está activa. Los datos se actualizarán en unos segundos.
+                </p>
+              </div>
+            </div>
+            <button onClick={() => setCheckoutStatus(null)} className="flex-shrink-0 cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
+                    style={{ color: '#00d672' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                   strokeLinecap="round" className="w-4 h-4">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {checkoutStatus === 'canceled' && (
+          <div className="flex items-center justify-between gap-3 px-5 py-4 rounded-2xl animate-fade-in"
+               style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.22)' }}>
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(251,191,36,0.12)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth={2}
+                     strokeLinecap="round" className="w-4 h-4">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </span>
+              <div>
+                <p className="text-[14px] font-semibold text-amber-400">Pago cancelado</p>
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  No se realizó ningún cargo. Elige un plan cuando estés listo.
+                </p>
+              </div>
+            </div>
+            <button onClick={() => setCheckoutStatus(null)} className="flex-shrink-0 cursor-pointer opacity-50 hover:opacity-100 transition-opacity text-amber-400">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                   strokeLinecap="round" className="w-4 h-4">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[13px]" role="alert">
@@ -438,17 +674,27 @@ export default function SuscripcionPage() {
           </FadeContent>
         )}
 
+        {/* Payment method — always shown once data loads */}
+        {!loadingData && (
+          <FadeContent delay={50}>
+            <PaymentMethodCard pm={sub?.paymentMethod ?? null} />
+          </FadeContent>
+        )}
+
         {/* Trial notice */}
-        {sub?.subscriptionStatus === 'trialing' && (
+        {!loadingData && sub?.subscriptionStatus === 'trialing' && (
           <div className="flex items-center gap-3 px-5 py-4 rounded-xl bg-brand-purple/10 border border-brand-purple/20">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-brand-purple flex-shrink-0">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
             <p className="text-[13px] text-[var(--text-secondary)]">
-              Estás en período de prueba.{' '}
-              {sub.currentPeriodEnd && (
+              {sub.trialDaysLeft != null
+                ? <><strong className="text-brand-purple">{sub.trialDaysLeft} días</strong> restantes de prueba gratuita. </>
+                : <>Estás en período de prueba. </>
+              }
+              {sub.trialEnd && (
                 <>Vence el <strong className="text-[var(--text)]">
-                  {new Date(sub.currentPeriodEnd).toLocaleDateString('es', { day: 'numeric', month: 'long' })}
+                  {new Date(sub.trialEnd).toLocaleDateString('es', { day: 'numeric', month: 'long' })}
                 </strong>. </>
               )}
               Elige un plan para no perder el acceso.
@@ -532,6 +778,13 @@ export default function SuscripcionPage() {
             </FadeContent>
 
           </div>
+        )}
+
+        {/* Invoice history — always shown once data loads */}
+        {!loadingData && (
+          <FadeContent delay={300}>
+            <InvoiceHistory invoices={sub?.invoices ?? []} />
+          </FadeContent>
         )}
 
       </div>
