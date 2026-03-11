@@ -48,7 +48,8 @@ export default withAuth(
     }
 
     // Dashboard y demás rutas: bloquear si no tienen suscripción activa
-    if (token && status && BLOCKED_STATUSES.includes(status)) {
+    // API routes enforce their own auth — skip subscription redirect for them
+    if (!pathname.startsWith('/api/') && token && status && BLOCKED_STATUSES.includes(status)) {
       return NextResponse.redirect(new URL('/onboarding', req.url))
     }
 
