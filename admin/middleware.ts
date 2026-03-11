@@ -11,9 +11,11 @@ import { NextResponse } from 'next/server'
 // Rutas que NO requieren autenticación
 const PUBLIC_PATHS = [
   '/login',
+  '/register',
   '/api/auth',
   '/api/webhooks',
   '/api/facebook',
+  '/api/stripe',
 ]
 
 // Statuses que bloquean acceso al dashboard → redirigen a /onboarding
@@ -63,7 +65,11 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        const { pathname } = req.nextUrl
+        if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) return true
+        return !!token
+      },
     },
     pages: {
       signIn: '/login',

@@ -789,18 +789,42 @@ export default function LoginPage() {
             <LoginForm />
 
             {/* Footer */}
-            <p
+            <div
               style={{
                 marginTop: '32px',
+                animation: 'sp-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.7s both',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <p style={{
+                fontSize: '12.5px',
+                color: 'rgba(255,255,255,0.3)',
+                fontFamily: "'DM Mono', monospace",
+                letterSpacing: '0.03em',
+                textAlign: 'center',
+              }}>
+                ¿No tienes cuenta?{' '}
+                <a
+                  href="/register"
+                  style={{ color: '#00d672', textDecoration: 'none', fontWeight: 600, transition: 'opacity 150ms' }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                >
+                  Regístrate
+                </a>
+              </p>
+              <p style={{
                 fontSize: '10.5px',
                 color: 'rgba(255,255,255,0.18)',
                 fontFamily: "'DM Mono', monospace",
                 letterSpacing: '0.03em',
-                animation: 'sp-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.7s both',
-              }}
-            >
-              {t('auth.copyright')} · {new Date().getFullYear()}
-            </p>
+                textAlign: 'center',
+              }}>
+                {t('auth.copyright')} · {new Date().getFullYear()}
+              </p>
+            </div>
           </div>
         </div>
 
