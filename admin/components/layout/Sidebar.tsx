@@ -54,7 +54,7 @@ function IconCreditCard() {
 function IconLogout() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}
-         strokeLinecap="round" strokeLinejoin="round" className="w-[16px] h-[16px]">
+         strokeLinecap="round" strokeLinejoin="round" className="w-[15px] h-[15px]">
       <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
       <polyline points="16 17 21 12 16 7"/>
       <line x1="21" y1="12" x2="9" y2="12"/>
@@ -76,8 +76,8 @@ const PLAN_BADGE: Record<string, { bg: string; color: string; border: string }> 
 }
 
 const LOCALES = [
-  { code: 'es' as const, label: 'ES', flag: '🇲🇽' },
-  { code: 'en' as const, label: 'EN', flag: '🇺🇸' },
+  { code: 'es' as const, label: 'ES' },
+  { code: 'en' as const, label: 'EN' },
 ]
 
 export default function Sidebar({ userName, userEmail, plan = 'basic' }: SidebarProps) {
@@ -96,132 +96,175 @@ export default function Sidebar({ userName, userEmail, plan = 'basic' }: Sidebar
 
   return (
     <aside
-      className="sticky top-0 h-screen flex flex-col w-[256px] border-r border-[var(--border)] flex-shrink-0 overflow-y-auto"
+      className="sticky top-0 h-screen flex flex-col w-[256px] border-r border-[var(--border)] flex-shrink-0 overflow-hidden"
       style={{ background: 'var(--bg-card)' }}
     >
+      {/* ── Ambient glow layers ── */}
+      {/* Top accent line: green → purple */}
+      <div
+        className="absolute top-0 left-0 right-0 z-20 pointer-events-none"
+        style={{ height: '1px', background: 'linear-gradient(90deg, #00d672 0%, #7c63f8 60%, transparent 100%)' }}
+        aria-hidden="true"
+      />
+      {/* Top-left radial glow */}
+      <div
+        className="absolute -top-24 -left-24 w-64 h-64 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(0,214,114,0.055) 0%, transparent 65%)' }}
+        aria-hidden="true"
+      />
+      {/* Bottom-right subtle purple glow */}
+      <div
+        className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(124,99,248,0.04) 0%, transparent 70%)' }}
+        aria-hidden="true"
+      />
+
       {/* ── Logo ── */}
-      <div className="h-[72px] flex items-center gap-3 px-5 border-b border-[var(--border)] flex-shrink-0">
+      <div className="h-[72px] flex items-center gap-3 px-5 border-b border-[var(--border)] flex-shrink-0 z-10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/smartpost_logo_icon_bg.png"
           alt="SmartPost"
-          width={36}
-          height={36}
-          className="rounded-xl flex-shrink-0"
-          style={{ boxShadow: '0 0 20px rgba(0,214,114,0.35), 0 4px 12px rgba(0,0,0,0.3)' }}
+          width={34}
+          height={34}
+          className="rounded-[10px] flex-shrink-0"
+          style={{ boxShadow: '0 0 18px rgba(0,214,114,0.30), 0 4px 10px rgba(0,0,0,0.3)' }}
         />
-        <div>
-          <p className="text-[15px] font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+        <div className="min-w-0">
+          <p
+            className="text-[14px] font-extrabold tracking-tight leading-none"
+            style={{
+              background: 'linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.75) 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
             SmartPost
           </p>
-          <p className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
-            {t('nav.adminPanel')}
-          </p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+              style={{ background: '#00d672', boxShadow: '0 0 5px rgba(0,214,114,0.8)' }}
+            />
+            <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
+              {t('nav.adminPanel')}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* ── Navigation ── */}
-      <nav className="flex-1 px-3 py-5 flex flex-col gap-0.5" aria-label="Navegación principal">
-        <p className="text-[9px] font-bold uppercase tracking-[1.4px] px-3 mb-3"
-           style={{ color: 'var(--text-muted)', opacity: 0.4 }}>
+      {/* ── Navigation ── scrollable, flex-1 with min-h-0 */}
+      <nav
+        className="flex-1 min-h-0 overflow-y-auto px-3 py-5 flex flex-col z-10"
+        aria-label="Navegación principal"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        <p
+          className="text-[9px] font-bold uppercase tracking-[1.6px] px-3 mb-3"
+          style={{ color: 'var(--text-muted)', opacity: 0.35 }}
+        >
           Menú
         </p>
 
-        {NAV_LINKS.map(link => {
-          const isActive = pathname.startsWith(link.href)
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={clsx(
-                'group relative flex items-center gap-3 px-3 py-2.5 rounded-[14px]',
-                'text-[13px] font-medium transition-all duration-200 cursor-pointer',
-              )}
-              style={{
-                color:      isActive ? '#00d672' : 'var(--text-muted)',
-                background: isActive
-                  ? 'linear-gradient(90deg, rgba(0,214,114,0.10) 0%, rgba(0,214,114,0.03) 100%)'
-                  : 'transparent',
-                border: isActive
-                  ? '1px solid rgba(0,214,114,0.13)'
-                  : '1px solid transparent',
-                boxShadow: isActive
-                  ? 'inset 0 1px 0 rgba(0,214,114,0.07), 0 1px 6px rgba(0,0,0,0.12)'
-                  : 'none',
-              }}
-            >
-              {/* Icon chip */}
-              <span
+        <div className="flex flex-col gap-0.5">
+          {NAV_LINKS.map(link => {
+            const isActive = pathname.startsWith(link.href)
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
                 className={clsx(
-                  'w-[34px] h-[34px] rounded-xl flex items-center justify-center flex-shrink-0',
-                  'transition-all duration-200',
-                  !isActive && 'group-hover:bg-[var(--border)]'
+                  'group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl',
+                  'text-[13px] font-medium transition-all duration-200 cursor-pointer',
                 )}
-                style={isActive ? {
-                  background: 'rgba(0,214,114,0.14)',
-                  color:      '#00d672',
-                  boxShadow:  '0 0 16px rgba(0,214,114,0.20), 0 2px 6px rgba(0,0,0,0.15)',
-                } : {
-                  color: 'var(--text-muted)',
+                style={{
+                  color:      isActive ? '#ffffff' : 'var(--text-muted)',
+                  background: isActive
+                    ? 'linear-gradient(135deg, rgba(0,214,114,0.18) 0%, rgba(0,214,114,0.06) 100%)'
+                    : 'transparent',
+                  border: isActive
+                    ? '1px solid rgba(0,214,114,0.20)'
+                    : '1px solid transparent',
+                  boxShadow: isActive
+                    ? '0 2px 12px rgba(0,214,114,0.08), inset 0 1px 0 rgba(0,214,114,0.10)'
+                    : 'none',
                 }}
               >
-                {link.icon}
-              </span>
-
-              <span>{link.label}</span>
-
-              {/* Active indicator — glowing dot on the right */}
-              {isActive && (
+                {/* Icon chip */}
                 <span
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
-                  style={{ background: '#00d672', boxShadow: '0 0 6px rgba(0,214,114,0.8)' }}
-                />
-              )}
-            </Link>
-          )
-        })}
+                  className={clsx(
+                    'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                    'transition-all duration-200',
+                    !isActive && 'group-hover:bg-white/5',
+                  )}
+                  style={isActive ? {
+                    background: 'rgba(0,214,114,0.20)',
+                    color:      '#00d672',
+                    boxShadow:  '0 0 14px rgba(0,214,114,0.25)',
+                  } : {
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  {link.icon}
+                </span>
+
+                <span className={clsx('transition-all duration-200', !isActive && 'group-hover:text-white/70')}>
+                  {link.label}
+                </span>
+
+                {/* Glowing pill indicator */}
+                {isActive && (
+                  <span
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
+                    style={{
+                      width:     '5px',
+                      height:    '5px',
+                      background: '#00d672',
+                      boxShadow: '0 0 8px 2px rgba(0,214,114,0.55)',
+                    }}
+                  />
+                )}
+              </Link>
+            )
+          })}
+        </div>
       </nav>
 
-      {/* ── Bottom section ── */}
-      <div className="border-t border-[var(--border)] p-3 flex flex-col gap-2 flex-shrink-0">
+      {/* ── Bottom section ── ALWAYS visible, never scrolls away */}
+      <div className="border-t border-[var(--border)] p-3 flex flex-col gap-2 flex-shrink-0 z-10">
 
-        {/* Profile card */}
-        <div
-          className="relative overflow-hidden rounded-2xl px-3 py-3 flex items-center gap-3"
-          style={{
-            background: 'linear-gradient(135deg, rgba(124,99,248,0.09) 0%, rgba(0,214,114,0.04) 100%)',
-            border:     '1px solid rgba(124,99,248,0.15)',
-          }}
-        >
+        {/* User row */}
+        <div className="flex items-center gap-2.5 px-1.5 py-1">
           {/* Avatar */}
           <div className="relative flex-shrink-0">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-bold text-white"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
               style={{
                 background: 'linear-gradient(135deg, #7c63f8 0%, #5e48d6 100%)',
-                boxShadow:  '0 0 16px rgba(124,99,248,0.40), 0 2px 8px rgba(0,0,0,0.30)',
+                boxShadow:  '0 0 12px rgba(124,99,248,0.40)',
               }}
             >
               {initial}
             </div>
             {/* Online dot */}
             <span
-              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+              className="absolute -bottom-px -right-px w-2 h-2 rounded-full border"
               style={{
                 background:  '#00d672',
                 borderColor: 'var(--bg-card)',
-                boxShadow:   '0 0 6px rgba(0,214,114,0.6)',
+                boxShadow:   '0 0 5px rgba(0,214,114,0.7)',
               }}
             />
           </div>
 
           {/* Name + plan */}
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text)' }}>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-semibold truncate leading-tight" style={{ color: 'var(--text)' }}>
               {userName ?? 'Usuario'}
             </p>
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize inline-block mt-0.5"
+              className="text-[9px] font-bold px-1.5 py-px rounded-full capitalize inline-block mt-0.5 leading-tight"
               style={{
                 background: badge.bg,
                 color:      badge.color,
@@ -233,33 +276,38 @@ export default function Sidebar({ userName, userEmail, plan = 'basic' }: Sidebar
           </div>
         </div>
 
-        {/* Language + Logout row */}
+        {/* Language segmented control + Logout */}
         <div className="flex items-center gap-1.5">
-          {LOCALES.map(l => {
-            const isLangActive = locale === l.code
-            return (
-              <button
-                key={l.code}
-                onClick={() => setLocale(l.code)}
-                className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-semibold cursor-pointer transition-all duration-150 flex-1"
-                style={{
-                  background: isLangActive ? 'rgba(0,214,114,0.10)' : 'var(--bg-surface)',
-                  color:      isLangActive ? '#00d672' : 'var(--text-muted)',
-                  border:     isLangActive ? '1px solid rgba(0,214,114,0.20)' : '1px solid var(--border)',
-                }}
-                aria-pressed={isLangActive}
-                aria-label={`Idioma ${l.label}`}
-              >
-                <span style={{ fontSize: '13px', lineHeight: 1 }} aria-hidden="true">{l.flag}</span>
-                <span>{l.label}</span>
-              </button>
-            )
-          })}
+          {/* Segmented language control */}
+          <div
+            className="flex flex-1 rounded-xl overflow-hidden p-0.5 gap-0.5"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+          >
+            {LOCALES.map(l => {
+              const isLangActive = locale === l.code
+              return (
+                <button
+                  key={l.code}
+                  onClick={() => setLocale(l.code)}
+                  className="flex-1 py-1.5 rounded-[10px] text-[11px] font-bold transition-all duration-150 cursor-pointer"
+                  style={{
+                    background: isLangActive ? 'rgba(0,214,114,0.15)' : 'transparent',
+                    color:      isLangActive ? '#00d672' : 'var(--text-muted)',
+                    boxShadow:  isLangActive ? 'inset 0 1px 0 rgba(0,214,114,0.10)' : 'none',
+                  }}
+                  aria-pressed={isLangActive}
+                  aria-label={`Idioma ${l.label}`}
+                >
+                  {l.label}
+                </button>
+              )
+            })}
+          </div>
 
-          {/* Logout — compact icon button */}
+          {/* Logout icon button */}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-150 flex-shrink-0"
+            className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-150 flex-shrink-0"
             style={{
               background: 'var(--bg-surface)',
               border:     '1px solid var(--border)',

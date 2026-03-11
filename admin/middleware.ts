@@ -66,6 +66,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/webhooks|smartpost_logo).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/webhooks|api/stripe/webhook|smartpost_logo).*)',
   ],
 }

@@ -31,8 +31,58 @@ export async function GET() {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    // No Stripe subscription yet — return DB data only
+    // No Stripe subscription recorded yet — still fetch PM + invoices via customer
     if (!user.subscriptionId) {
+      let paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null = null
+      let invoices: { id: string; amount: number; currency: string; date: string; status: string; pdfUrl: string | null; hostedUrl: string | null }[] = []
+
+      if (user.stripeCustomerId) {
+        const [pms, invList] = await Promise.all([
+          stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'card', limit: 1 }),
+          stripe.invoices.list({ customer: user.stripeCustomerId, limit: 5 }),
+        ])
+        const pm = pms.data[0] ?? null
+        if (pm?.card) {
+          paymentMethod = { brand: pm.card.brand, last4: pm.card.last4, expMonth: pm.card.exp_month, expYear: pm.card.exp_year }
+        }
+        invoices = invList.data.map(inv => ({
+          id:        inv.id,
+          amount:    inv.amount_paid,
+          currency:  inv.currency,
+          date:      new Date(inv.created * 1000).toISOString(),
+          status:    inv.status ?? 'unknown',
+          pdfUrl:    inv.invoice_pdf ?? null,
+          hostedUrl: inv.hosted_invoice_url ?? null,
+        }))
+
+        // If Stripe already has an active subscription but webhook missed it, auto-recover
+        const subs = await stripe.subscriptions.list({ customer: user.stripeCustomerId, limit: 1, status: 'active' })
+        const activeSub = subs.data[0]
+        if (activeSub) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const periodEnd = (activeSub as any).current_period_end ?? activeSub.items.data[0]?.current_period_end ?? null
+          const price     = activeSub.items.data[0]?.price
+          await prisma.user.update({
+            where: { id: session.user.id },
+            data:  { subscriptionId: activeSub.id, subscriptionStatus: activeSub.status, plan: activeSub.metadata?.plan ?? user.plan },
+          })
+          return NextResponse.json({
+            plan:               activeSub.metadata?.plan ?? user.plan,
+            subscriptionStatus: activeSub.status,
+            subscriptionId:     activeSub.id,
+            currentPeriodEnd:   periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+            cancelAtPeriodEnd:  activeSub.cancel_at_period_end,
+            amount:             price?.unit_amount ?? null,
+            currency:           price?.currency    ?? null,
+            interval:           price?.recurring?.interval ?? null,
+            trialEnd:           null,
+            trialDaysLeft:      null,
+            paymentMethod,
+            invoices,
+          })
+        }
+      }
+
       return NextResponse.json({
         plan:               user.plan,
         subscriptionStatus: user.subscriptionStatus,
@@ -44,8 +94,8 @@ export async function GET() {
         interval:           null,
         trialEnd:           null,
         trialDaysLeft:      null,
-        paymentMethod:      null,
-        invoices:           [],
+        paymentMethod,
+        invoices,
       })
     }
 

@@ -90,7 +90,8 @@ export function Select({ value, onChange, options, placeholder = 'Seleccionar', 
         border:       '1px solid rgba(255,255,255,0.14)',
         borderRadius: '12px',
         overflow:     'hidden',
-        boxShadow:    '0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)',
+        boxShadow:    '0 8px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
+        padding:      '4px',
       }}
     >
       {options.map(opt => {
@@ -100,9 +101,9 @@ export function Select({ value, onChange, options, placeholder = 'Seleccionar', 
             key={opt.value}
             type="button"
             onClick={() => { onChange(opt.value); setOpen(false) }}
-            className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm transition-colors duration-100 cursor-pointer text-left outline-none"
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[10px] text-sm transition-colors duration-100 cursor-pointer text-left outline-none font-medium"
             style={{
-              background: isSelected ? 'rgba(0,214,114,0.08)' : 'transparent',
+              background: isSelected ? 'rgba(0,214,114,0.10)' : 'transparent',
               color:      isSelected ? '#00d672' : 'var(--text-muted)',
             }}
             onMouseEnter={e => {

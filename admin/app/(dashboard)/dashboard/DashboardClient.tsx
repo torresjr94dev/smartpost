@@ -156,7 +156,7 @@ export function DashboardClient({
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <header
-        className="flex items-center justify-between px-8 py-5 border-b"
+        className="h-[72px] flex items-center justify-between px-8 border-b flex-shrink-0"
         style={{ borderColor: 'var(--border)' }}
       >
         <div>
