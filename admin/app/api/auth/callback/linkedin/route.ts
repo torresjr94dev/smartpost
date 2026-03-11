@@ -21,6 +21,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
+  // LinkedIn is a Pro-only feature — block non-pro users at the server level
+  if (session.user.plan !== 'pro') {
+    return NextResponse.redirect(new URL('/cuentas?error=linkedin_pro_required', req.url))
+  }
+
   const { searchParams } = req.nextUrl
   const code  = searchParams.get('code')
   const error = searchParams.get('error')

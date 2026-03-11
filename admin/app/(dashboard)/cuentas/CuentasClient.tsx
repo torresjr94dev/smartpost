@@ -21,6 +21,9 @@ interface SocialAccount {
 interface CuentasClientProps {
   accounts:        SocialAccount[]
   linkedinAuthUrl: string
+  plan:            string
+  initialError?:   string | null
+  initialSuccess?: string | null
   /** @deprecated – kept for server-side fallback reference only */
   facebookAuthUrl?: string
 }
@@ -110,6 +113,16 @@ function IconX() {
   )
 }
 
+function IconLock() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+         strokeLinecap="round" className="w-4 h-4 flex-shrink-0">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  )
+}
+
 // ─── Account Card ─────────────────────────────────────────────────
 function AccountCard({
   platform,
@@ -117,12 +130,14 @@ function AccountCard({
   onConnect,
   onDisconnect,
   loading,
+  locked,
 }: {
   platform:     string
   account:      SocialAccount | null
   onConnect:    () => void
   onDisconnect: (id: string) => void
   loading:      boolean
+  locked?:      boolean
 }) {
   const { t, fmtDate } = useI18n()
   const [hovered, setHovered] = useState(false)
@@ -145,6 +160,66 @@ function AccountCard({
     facebook:  t('accounts.facebook.desc'),
     instagram: t('accounts.instagram.desc'),
     linkedin:  t('accounts.linkedin.desc'),
+  }
+
+  if (locked) {
+    return (
+      <div
+        className="glass-card p-6 flex flex-col gap-5 relative overflow-hidden"
+        style={{ opacity: 0.65, cursor: 'default' }}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center border flex-shrink-0"
+              style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}
+            >
+              {PLATFORM_ICONS[platform]?.(22)}
+            </div>
+            <div>
+              <p className="font-display text-base font-semibold" style={{ color: 'var(--text)' }}>
+                {t(`accounts.${platform}.name`)}
+              </p>
+              <p className="font-body text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                {platformDesc[platform]}
+              </p>
+            </div>
+          </div>
+          <span
+            className="badge text-xs whitespace-nowrap"
+            style={{ background: 'rgba(124,99,248,0.12)', color: '#7c63f8' }}
+          >
+            Pro
+          </span>
+        </div>
+
+        {/* Lock message */}
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm"
+          style={{
+            background:  'rgba(124,99,248,0.06)',
+            border:      '1px solid rgba(124,99,248,0.18)',
+            color:       '#7c63f8',
+          }}
+        >
+          <IconLock />
+          <span className="font-body text-sm">Disponible en Plan Pro</span>
+        </div>
+
+        {/* Upgrade CTA */}
+        <div className="mt-auto">
+          <a
+            href="/suscripcion"
+            className="btn-primary flex-1 flex items-center justify-center gap-2 w-full"
+            style={{ background: 'linear-gradient(135deg,#7c63f8,#5b45e0)', textDecoration: 'none' }}
+          >
+            <IconLock />
+            Mejorar a Pro
+          </a>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -318,11 +393,14 @@ function AccountCard({
 export default function CuentasClient({
   accounts,
   linkedinAuthUrl,
+  plan,
+  initialError,
+  initialSuccess,
 }: CuentasClientProps) {
   const { t } = useI18n()
   const [localAccounts, setLocalAccounts] = useState<SocialAccount[]>(accounts)
   const [loadingPlatform, setLoadingPlatform] = useState<string | null>(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(initialError ?? '')
 
   const getAccount = (platform: string) =>
     localAccounts.find(a => a.platform === platform && a.isActive) ?? null
@@ -392,6 +470,7 @@ export default function CuentasClient({
             }
             onDisconnect={(id) => handleDisconnect(id, platform)}
             loading={loadingPlatform === platform}
+            locked={platform === 'linkedin' && plan !== 'pro'}
           />
         ))}
       </div>

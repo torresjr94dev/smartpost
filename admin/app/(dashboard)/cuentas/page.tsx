@@ -50,9 +50,17 @@ function buildLinkedInOAuthUrl(state: string): string {
   return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`
 }
 
-export default async function CuentasPage() {
+export default async function CuentasPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>
+}) {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
+
+  const params       = await searchParams
+  const errorParam   = params.error ?? null
+  const successParam = params.success ?? null
 
   // Fetch user's social accounts
   const accounts = await prisma.userSocialAccount.findMany({
@@ -92,6 +100,9 @@ export default async function CuentasPage() {
           accounts={serialized}
           facebookAuthUrl={buildFacebookOAuthUrl(fbState)}
           linkedinAuthUrl={buildLinkedInOAuthUrl(liState)}
+          plan={session.user.plan}
+          initialError={errorParam === 'linkedin_pro_required' ? 'LinkedIn solo está disponible en el Plan Pro. Mejora tu plan para conectarlo.' : null}
+          initialSuccess={successParam}
         />
       </div>
     </div>
