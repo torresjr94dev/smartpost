@@ -15,15 +15,17 @@ import { encryptToken } from '@/lib/crypto'
 const LI_TOKEN_URL   = 'https://www.linkedin.com/oauth/v2/accessToken'
 const LI_PROFILE_URL = 'https://api.linkedin.com/v2/userinfo'  // OpenID Connect
 
+const BASE_URL = process.env.NEXTAUTH_URL!
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    return NextResponse.redirect(new URL('/login', BASE_URL))
   }
 
   // LinkedIn is a Pro-only feature — block non-pro users at the server level
   if (session.user.plan !== 'pro') {
-    return NextResponse.redirect(new URL('/cuentas?error=linkedin_pro_required', req.url))
+    return NextResponse.redirect(new URL('/cuentas?error=linkedin_pro_required', BASE_URL))
   }
 
   const { searchParams } = req.nextUrl
@@ -32,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   if (error || !code) {
     return NextResponse.redirect(
-      new URL('/cuentas?error=linkedin_denied', req.url)
+      new URL('/cuentas?error=linkedin_denied', BASE_URL)
     )
   }
 
@@ -125,12 +127,12 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.redirect(
-      new URL('/cuentas?success=linkedin', req.url)
+      new URL('/cuentas?success=linkedin', BASE_URL)
     )
   } catch (err) {
     console.error('[LinkedIn OAuth]', err)
     return NextResponse.redirect(
-      new URL('/cuentas?error=linkedin_failed', req.url)
+      new URL('/cuentas?error=linkedin_failed', BASE_URL)
     )
   }
 }
