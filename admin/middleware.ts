@@ -16,6 +16,7 @@ const PUBLIC_PATHS = [
   '/api/webhooks',
   '/api/facebook',
   '/api/stripe',
+  '/api/internal/bot', // Bot de WhatsApp — autenticado por X-Bot-Secret
 ]
 
 // Statuses que bloquean acceso al dashboard → redirigen a /onboarding
