@@ -33,10 +33,11 @@ export default withAuth(
       return NextResponse.next()
     }
 
-    // /onboarding y /api/onboarding: accesibles sin suscripción activa
+    // /onboarding y /api/onboarding: accesibles sin suscripción activa o sin waId
     if (pathname.startsWith('/onboarding') || pathname.startsWith('/api/onboarding')) {
-      // Si ya tiene plan activo → redirigir al dashboard (no necesitan onboarding)
-      if (status && ACTIVE_STATUSES.includes(status)) {
+      const waId = (token as Record<string, unknown>)?.waId as string | null | undefined
+      // Si ya tiene plan activo Y ya tiene waId → redirigir al dashboard
+      if (status && ACTIVE_STATUSES.includes(status) && waId) {
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
       return NextResponse.next()
@@ -47,10 +48,15 @@ export default withAuth(
       return NextResponse.next()
     }
 
-    // Dashboard y demás rutas: bloquear si no tienen suscripción activa
+    // Dashboard y demás rutas: bloquear si no tienen suscripción activa O no tienen waId
     // API routes enforce their own auth — skip subscription redirect for them
-    if (!pathname.startsWith('/api/') && token && status && BLOCKED_STATUSES.includes(status)) {
-      return NextResponse.redirect(new URL('/onboarding', req.url))
+    if (!pathname.startsWith('/api/') && token) {
+      const waId = (token as Record<string, unknown>)?.waId as string | null | undefined
+      const needsOnboarding =
+        (status && BLOCKED_STATUSES.includes(status)) || !waId
+      if (needsOnboarding) {
+        return NextResponse.redirect(new URL('/onboarding', req.url))
+      }
     }
 
     return NextResponse.next()

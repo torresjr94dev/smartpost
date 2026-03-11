@@ -45,7 +45,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <>
       <ThemeScript />
-      <SessionProvider>
+      <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
         <I18nProvider defaultLocale="es">
           <ThemeSyncer />
           <FacebookSDKLoader />

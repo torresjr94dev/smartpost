@@ -486,21 +486,29 @@ export default function OnboardingPage() {
 }
 
 function OnboardingPageInner() {
-  const { data: session }  = useSession()
-  const searchParams        = useSearchParams()
+  const { data: session, status: sessionStatus } = useSession()
+  const searchParams = useSearchParams()
 
-  const isFbUser  = session?.user?.email?.endsWith('@pending.sp') ?? false
-  const totalSteps = isFbUser ? 2 : 1
-  const [step, setStep] = useState(0)
+  const hasWaId  = !!(session?.user?.waId)
+  const isFbUser = session?.user?.email?.endsWith('@pending.sp') ?? false
 
-  // Step 0 state (FB users: complete account)
+  // Dynamic steps: wa (if no waId) → account (if FB user) → plan (always)
+  const steps = [...(!hasWaId ? ['wa'] : []), ...(isFbUser ? ['account'] : []), 'plan']
+
+  const [stepIndex, setStepIndex] = useState(0)
+
+  // WhatsApp step state
+  const [waPhone,    setWaPhone]    = useState('')
+  const [waLoading,  setWaLoading]  = useState(false)
+
+  // Account step state (FB users: complete account)
   const [email,       setEmail]       = useState('')
   const [password,    setPassword]    = useState('')
   const [confirmPass, setConfirmPass] = useState('')
   const [showPass,    setShowPass]    = useState(false)
   const [step0Loading, setStep0Loading] = useState(false)
 
-  // Step 1 state (plan selection)
+  // Plan step state
   const [selectedPlan,     setSelectedPlan]     = useState<PlanKey>('pro')
   const [annual,           setAnnual]           = useState(true)
   const [checkoutLoading,  setCheckoutLoading]  = useState(false)
@@ -509,7 +517,6 @@ function OnboardingPageInner() {
   const [hasError, setHasError] = useState(false)
 
   const checkoutCanceled = searchParams.get('checkout') === 'canceled'
-  const effectiveStep    = isFbUser ? step : 1
   const userName         = session?.user?.name?.split(' ')[0] ?? ''
 
   function triggerError(msg: string) {
@@ -518,7 +525,28 @@ function OnboardingPageInner() {
     setTimeout(() => setHasError(false), 500)
   }
 
-  async function handleAccountStep(e: React.FormEvent) {
+  async function handleLinkWhatsApp(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError('')
+    if (!waPhone.trim()) return triggerError('El número de WhatsApp es requerido')
+    setWaLoading(true)
+    try {
+      const res  = await fetch('/api/onboarding/link-whatsapp', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ phone: waPhone }),
+      })
+      const data = await res.json() as { success?: boolean; error?: string }
+      if (!res.ok) { triggerError(data.error ?? 'Error al guardar. Intenta de nuevo.'); return }
+      setStepIndex(i => i + 1)
+    } catch {
+      triggerError('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setWaLoading(false)
+    }
+  }
+
+  async function handleAccountStep(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     if (!email)                      return triggerError('El email es requerido')
@@ -534,7 +562,7 @@ function OnboardingPageInner() {
       })
       const data = await res.json() as { success?: boolean; error?: string }
       if (!res.ok) { triggerError(data.error ?? 'Error al guardar. Intenta de nuevo.'); return }
-      setStep(1)
+      setStepIndex(i => i + 1)
     } catch {
       triggerError('Error de conexión. Intenta de nuevo.')
     } finally {
@@ -560,7 +588,26 @@ function OnboardingPageInner() {
     }
   }
 
-  const anyLoading = step0Loading || checkoutLoading
+  const anyLoading = step0Loading || checkoutLoading || waLoading
+
+  // Show spinner while session is loading
+  if (sessionStatus === 'loading') {
+    return (
+      <div style={{
+        minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
+        background:'#050709',
+      }}>
+        <span style={{
+          width:28, height:28, borderRadius:'50%',
+          border:'2.5px solid rgba(255,255,255,0.1)',
+          borderTopColor:'#00d672',
+          animation:'ob-spin 0.7s linear infinite',
+          display:'block',
+        }} />
+        <style>{`@keyframes ob-spin { to { transform:rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -652,13 +699,127 @@ function OnboardingPageInner() {
                   SmartPost
                 </span>
               </div>
-              {totalSteps > 1 && (
-                <StepDots total={totalSteps} current={isFbUser ? step : 0} />
+              {steps.length > 1 && (
+                <StepDots total={steps.length} current={stepIndex} />
               )}
             </div>
 
-            {/* ── Step 0: Complete account (FB users only) ─────── */}
-            {isFbUser && effectiveStep === 0 && (
+            {/* ── Step: Link WhatsApp ──────────────────────────── */}
+            {steps[stepIndex] === 'wa' && (
+              <form onSubmit={handleLinkWhatsApp} noValidate>
+                {/* Heading */}
+                <div style={{ marginBottom:40, animation:'ob-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.16s both' }}>
+                  <p style={{
+                    fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase',
+                    color:'rgba(255,255,255,0.28)', fontFamily:"'DM Mono', monospace",
+                    marginBottom:10,
+                  }}>
+                    — Paso {stepIndex + 1} de {steps.length}
+                  </p>
+                  <h1 style={{
+                    fontSize:'clamp(2rem,3.5vw,2.6rem)', fontWeight:800, lineHeight:1.02,
+                    letterSpacing:'-0.045em', color:'rgba(255,255,255,0.95)', marginBottom:10,
+                  }}>
+                    Conecta tu<br />
+                    <span style={{ color:'#00d672' }}>WhatsApp</span>
+                  </h1>
+                  <p style={{
+                    fontSize:13, color:'rgba(255,255,255,0.35)',
+                    lineHeight:1.65, fontFamily:"'DM Mono', monospace",
+                  }}>
+                    Tu número de WhatsApp es el canal principal desde donde gestionas y publicas contenido.
+                  </p>
+                </div>
+
+                {/* WA Icon + Input */}
+                <div style={{ animation:'ob-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.26s both' }}>
+                  {/* WhatsApp visual hint */}
+                  <div style={{
+                    display:'flex', alignItems:'center', gap:12, marginBottom:24,
+                    padding:'12px 16px', borderRadius:12,
+                    background:'rgba(37,211,102,0.06)', border:'1px solid rgba(37,211,102,0.14)',
+                  }}>
+                    <div style={{
+                      width:36, height:36, borderRadius:'50%', flexShrink:0,
+                      background:'#25D366',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      boxShadow:'0 0 16px rgba(37,211,102,0.35)',
+                    }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                      </svg>
+                    </div>
+                    <p style={{ fontSize:12, color:'rgba(255,255,255,0.45)', fontFamily:"'DM Mono', monospace", lineHeight:1.5 }}>
+                      Ingresa el número <strong style={{ color:'rgba(255,255,255,0.7)' }}>con código de país</strong><br />
+                      Ej: <span style={{ color:'#00d672' }}>+52 1 234 567 8900</span>
+                    </p>
+                  </div>
+
+                  <ObInput
+                    id="waphone" label="Número de WhatsApp (ej. +521234567890)"
+                    type="tel" value={waPhone} onChange={setWaPhone}
+                    autoComplete="tel" autoFocus
+                    hasError={hasError && !waPhone.trim()}
+                  />
+                </div>
+
+                {/* Error */}
+                {error && (
+                  <div role="alert" style={{
+                    display:'flex', alignItems:'center', gap:10,
+                    background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.18)',
+                    borderRadius:10, padding:'10px 14px', marginBottom:18,
+                    color:'#f87171', fontSize:12.5, fontFamily:"'DM Mono', monospace",
+                    animation:'ob-stagger 0.3s ease both',
+                  }}>
+                    <IconAlert />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {/* Submit */}
+                <div style={{ animation:'ob-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.38s both' }}>
+                  <button
+                    type="submit"
+                    disabled={anyLoading}
+                    style={{
+                      position:'relative', overflow:'hidden',
+                      width:'100%', height:50, borderRadius:12,
+                      background:'linear-gradient(135deg,#00d672 0%,#00b85e 100%)',
+                      border:'none', cursor: anyLoading ? 'not-allowed' : 'pointer',
+                      opacity: anyLoading ? 0.65 : 1,
+                      animation: !anyLoading
+                        ? 'ob-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.38s both,ob-glow 3s ease-in-out infinite 1.2s'
+                        : 'ob-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.38s both',
+                      transition:'transform 150ms',
+                    }}
+                    onMouseEnter={e => { if (!anyLoading) (e.currentTarget as HTMLButtonElement).style.transform='translateY(-1px)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform='translateY(0)' }}
+                  >
+                    {!anyLoading && (
+                      <span aria-hidden="true" style={{
+                        position:'absolute', top:0, bottom:0, width:'45%',
+                        background:'linear-gradient(105deg,transparent 0%,rgba(255,255,255,0.24) 50%,transparent 100%)',
+                        animation:'ob-shimmer 3s cubic-bezier(0.4,0,0.6,1) infinite 1.5s',
+                      }} />
+                    )}
+                    <span style={{
+                      position:'relative', zIndex:1,
+                      display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                      color:'#052e1c', fontSize:15, fontWeight:700, letterSpacing:'-0.01em',
+                      fontFamily:"'Syne', system-ui, sans-serif",
+                    }}>
+                      {waLoading
+                        ? <><span style={{ width:16, height:16, borderRadius:'50%', border:'2px solid rgba(5,46,28,0.25)', borderTopColor:'#052e1c', animation:'ob-spin 0.7s linear infinite', display:'block' }} /> Verificando...</>
+                        : 'Vincular WhatsApp →'}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* ── Step: Complete account (FB users only) ──────── */}
+            {steps[stepIndex] === 'account' && (
               <form onSubmit={handleAccountStep} noValidate>
                 {/* Heading */}
                 <div style={{ marginBottom:40, animation:'ob-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.16s both' }}>
@@ -667,7 +828,7 @@ function OnboardingPageInner() {
                     color:'rgba(255,255,255,0.28)', fontFamily:"'DM Mono', monospace",
                     marginBottom:10,
                   }}>
-                    — Paso 1 de {totalSteps}
+                    — Paso {stepIndex + 1} de {steps.length}
                   </p>
                   <h1 style={{
                     fontSize:'clamp(2rem,3.5vw,2.6rem)', fontWeight:800, lineHeight:1.02,
@@ -774,18 +935,18 @@ function OnboardingPageInner() {
               </form>
             )}
 
-            {/* ── Step 1: Choose plan ──────────────────────────── */}
-            {effectiveStep === 1 && (
+            {/* ── Step: Choose plan ────────────────────────────── */}
+            {steps[stepIndex] === 'plan' && (
               <div>
                 {/* Heading */}
                 <div style={{ marginBottom:36, animation:'ob-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.16s both' }}>
-                  {isFbUser && (
+                  {steps.length > 1 && (
                     <p style={{
                       fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase',
                       color:'rgba(255,255,255,0.28)', fontFamily:"'DM Mono', monospace",
                       marginBottom:10,
                     }}>
-                      — Paso 2 de {totalSteps}
+                      — Paso {stepIndex + 1} de {steps.length}
                     </p>
                   )}
                   <h1 style={{

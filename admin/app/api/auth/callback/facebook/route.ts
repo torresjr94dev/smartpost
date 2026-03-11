@@ -196,6 +196,7 @@ export async function GET(req: NextRequest) {
           name:               user.name,
           subscriptionStatus: user.subscriptionStatus,
           plan:               user.plan,
+          waId:               user.waId ?? null,
           iat:                nowSeconds,
           exp:                nowSeconds + maxAge,
           jti:                crypto.randomUUID(),

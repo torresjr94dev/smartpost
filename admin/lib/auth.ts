@@ -60,6 +60,7 @@ export const authOptions: NextAuthOptions = {
           name:               user.name,
           subscriptionStatus: user.subscriptionStatus,
           plan:               user.plan,
+          waId:               user.waId,
         }
       },
     }),
@@ -67,23 +68,39 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user }) {
-      // On first sign-in, user object is populated
+      const now = Math.floor(Date.now() / 1000)
+
+      // On first sign-in, user object is populated → stamp all claims
       if (user) {
         token.id                 = user.id
         token.subscriptionStatus = (user as unknown as Record<string, unknown>).subscriptionStatus as string
         token.plan               = (user as unknown as Record<string, unknown>).plan as string
+        token.waId               = (user as unknown as Record<string, unknown>).waId as string | null ?? null
+        token.refreshedAt        = now
+        return token
       }
-      // OAuth providers (Google) don't include subscriptionStatus/plan — fetch from DB
-      if (!token.subscriptionStatus || !token.plan) {
+
+      // Re-fetch from DB every 5 min so Stripe webhook changes propagate to
+      // the cookie without requiring the user to sign out and back in.
+      // SessionProvider polls every 5 min → triggers this → updates the cookie →
+      // middleware reads the fresh status on the next navigation.
+      const REFRESH_INTERVAL = 5 * 60
+      const lastRefresh       = (token.refreshedAt as number | undefined) ?? 0
+      const shouldRefresh     = !token.id || (now - lastRefresh) > REFRESH_INTERVAL
+
+      if (shouldRefresh && token.id) {
         const dbUser = await prisma.user.findUnique({
           where:  { id: token.id as string },
-          select: { subscriptionStatus: true, plan: true },
+          select: { subscriptionStatus: true, plan: true, waId: true },
         })
         if (dbUser) {
           token.subscriptionStatus = dbUser.subscriptionStatus
           token.plan               = dbUser.plan
+          token.waId               = dbUser.waId ?? null
+          token.refreshedAt        = now
         }
       }
+
       return token
     },
 
@@ -92,6 +109,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id                 = token.id as string
         session.user.subscriptionStatus = token.subscriptionStatus as string
         session.user.plan               = token.plan as string
+        session.user.waId               = token.waId as string | null
       }
       return session
     },
@@ -110,6 +128,7 @@ declare module 'next-auth' {
       name?:              string | null
       subscriptionStatus: string
       plan:               string
+      waId:               string | null
     }
   }
 }
@@ -119,5 +138,7 @@ declare module 'next-auth/jwt' {
     id:                 string
     subscriptionStatus: string
     plan:               string
+    waId:               string | null
+    refreshedAt?:       number
   }
 }
