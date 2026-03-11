@@ -6,6 +6,7 @@
 
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
@@ -24,6 +25,11 @@ export const authOptions: NextAuthOptions = {
   },
 
   providers: [
+    GoogleProvider({
+      clientId:     process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -66,6 +72,17 @@ export const authOptions: NextAuthOptions = {
         token.id                 = user.id
         token.subscriptionStatus = (user as unknown as Record<string, unknown>).subscriptionStatus as string
         token.plan               = (user as unknown as Record<string, unknown>).plan as string
+      }
+      // OAuth providers (Google) don't include subscriptionStatus/plan — fetch from DB
+      if (!token.subscriptionStatus || !token.plan) {
+        const dbUser = await prisma.user.findUnique({
+          where:  { id: token.id as string },
+          select: { subscriptionStatus: true, plan: true },
+        })
+        if (dbUser) {
+          token.subscriptionStatus = dbUser.subscriptionStatus
+          token.plan               = dbUser.plan
+        }
       }
       return token
     },
