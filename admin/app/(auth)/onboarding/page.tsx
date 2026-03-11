@@ -489,8 +489,9 @@ function OnboardingPageInner() {
   const { data: session, status: sessionStatus } = useSession()
   const searchParams = useSearchParams()
 
-  const hasWaId  = !!(session?.user?.waId)
-  const isFbUser = session?.user?.email?.endsWith('@pending.sp') ?? false
+  const hasWaId        = !!(session?.user?.waId)
+  const isFbUser       = session?.user?.email?.endsWith('@pending.sp') ?? false
+  const isResubscribing = !!session?.user?.subscriptionStatus && session.user.subscriptionStatus !== 'onboarding'
 
   // Dynamic steps: wa (if no waId) → account (if FB user) → plan (always)
   const steps = [...(!hasWaId ? ['wa'] : []), ...(isFbUser ? ['account'] : []), 'plan']
@@ -954,13 +955,17 @@ function OnboardingPageInner() {
                     letterSpacing:'-0.045em', color:'rgba(255,255,255,0.95)', marginBottom:10,
                   }}>
                     Elige tu plan<br />
-                    <span style={{ color:'#00d672' }}>7 días sin cargos.</span>
+                    <span style={{ color:'#00d672' }}>
+                      {isResubscribing ? 'Reactiva tu acceso.' : '7 días sin cargos.'}
+                    </span>
                   </h1>
                   <p style={{
                     fontSize:13, color:'rgba(255,255,255,0.35)',
                     lineHeight:1.65, fontFamily:"'DM Mono', monospace",
                   }}>
-                    Sin cargos hasta el día 8. Cancela cuando quieras.
+                    {isResubscribing
+                      ? 'Tu prueba gratuita ya fue utilizada. Elige un plan para continuar.'
+                      : 'Sin cargos hasta el día 8. Cancela cuando quieras.'}
                   </p>
                 </div>
 
@@ -1057,7 +1062,7 @@ function OnboardingPageInner() {
                     }}>
                       {checkoutLoading
                         ? <><span style={{ width:16, height:16, borderRadius:'50%', border:'2px solid rgba(5,46,28,0.25)', borderTopColor:'#052e1c', animation:'ob-spin 0.7s linear infinite', display:'block' }} /> Redirigiendo...</>
-                        : 'Iniciar prueba gratuita de 7 días →'}
+                        : isResubscribing ? 'Suscribirse ahora →' : 'Iniciar prueba gratuita de 7 días →'}
                     </span>
                   </button>
                 </div>
@@ -1069,7 +1074,9 @@ function OnboardingPageInner() {
                   fontFamily:"'DM Mono', monospace", letterSpacing:'0.03em',
                   animation:'ob-stagger 0.5s cubic-bezier(0.16,1,0.3,1) 0.55s both',
                 }}>
-                  Sin cargos hasta el día 8 · Pago seguro con Stripe · Cancela en cualquier momento
+                  {isResubscribing
+                    ? 'Pago seguro con Stripe · Cancela en cualquier momento'
+                    : 'Sin cargos hasta el día 8 · Pago seguro con Stripe · Cancela en cualquier momento'}
                 </p>
               </div>
             )}

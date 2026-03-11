@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, email: true, name: true, stripeCustomerId: true },
+      select: { id: true, email: true, name: true, stripeCustomerId: true, subscriptionId: true },
     })
 
     if (!user) {
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       cancel_url:           cancelUrl,
       metadata:             { userId: user.id, plan },
       subscription_data: {
-        trial_period_days: fromOnboarding ? TRIAL_DAYS : undefined,
+        trial_period_days: fromOnboarding && !user.subscriptionId ? TRIAL_DAYS : undefined,
         metadata:          { userId: user.id, plan },
       },
       allow_promotion_codes: true,
