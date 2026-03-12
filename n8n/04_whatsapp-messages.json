@@ -20,7 +20,7 @@
           "parameters": []
         },
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"👋 Hola! Para usar SmartPost necesitas registrarte primero.\\n\\n🔗 Crea tu cuenta aquí: {{ $env.ADMIN_URL }}/register\"\n  }\n}"
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"👋 ¡Hola! Tu número no está registrado en SmartPost.\\n\\nSmartPost es un bot que te ayuda a crear y publicar contenido en tus redes sociales directo desde WhatsApp, con ayuda de IA. 🤖\\n\\n🌐 Conoce más: {{ $env.LANDING_URL }}\\n✍️ Crea tu cuenta: {{ $env.ADMIN_URL }}/register\"\n  }\n}"
       }
     },
     {
@@ -38,7 +38,7 @@
           "parameters": [{ "name": "Content-Type", "value": "application/json" }]
         },
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"⚠️ Tu suscripción de SmartPost ha vencido.\\n\\nPara continuar publicando en tus redes, renueva tu plan:\\n💳 {{ $env.ADMIN_URL }}/suscripcion\"\n  }\n}"
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"⚠️ Tu suscripción de SmartPost ha vencido.\\n\\nSin un plan activo el bot no puede publicar en tus redes. Renueva tu plan para retomar el control de tu contenido:\\n💳 {{ $env.ADMIN_URL }}/suscripcion\"\n  }\n}"
       }
     },
     {
@@ -56,13 +56,14 @@
           "parameters": [{ "name": "Content-Type", "value": "application/json" }]
         },
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"🔐 Tu conexión con Facebook/Instagram ha expirado.\\n\\nReconecta tu cuenta para continuar publicando:\\n🔗 {{ $env.ADMIN_URL }}/cuentas\"\n  }\n}"
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Mensaje Entrante').item.json.waId }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"🔐 Tu conexión con Facebook/Instagram ha expirado.\\n\\nSin acceso a tus redes el bot no puede publicar. Reconéctate en unos segundos:\\n🔗 {{ $env.ADMIN_URL }}/cuentas\"\n  }\n}"
       }
     }
   ],
   "n8n_variables_required": [
     "WHATSAPP_PHONE_NUMBER_ID - ID del número de WhatsApp Business",
     "ADMIN_URL - URL pública del admin (ej: https://app.tudominio.com)",
+    "LANDING_URL - URL de la landing/marketing (ej: https://smartpost.torresjr.dev)",
     "TOKEN_ENCRYPTION_KEY - 64 chars hex (misma que .env.local del admin)"
   ]
 }

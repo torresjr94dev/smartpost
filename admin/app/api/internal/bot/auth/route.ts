@@ -50,22 +50,27 @@ export async function POST(req: NextRequest) {
 
   // Usuario no registrado en la plataforma
   if (!user) {
+    const landingUrl = process.env.LANDING_URL ?? ''
+    const adminUrl = process.env.NEXTAUTH_URL ?? ''
     return NextResponse.json({
       status: 'not_registered',
       message:
-        '❌ Tu número de WhatsApp no está vinculado a ninguna cuenta en SmartPost.\n\n' +
-        'Regístrate en nuestra plataforma y vincula tu número desde el panel administrativo para comenzar. 🚀',
+        '👋 ¡Hola! Tu número no está registrado en SmartPost.\n\n' +
+        'SmartPost es un bot que te ayuda a crear y publicar contenido en tus redes sociales directo desde WhatsApp, con ayuda de IA. 🤖\n\n' +
+        `🌐 Conoce más: ${landingUrl}\n` +
+        `✍️ Crea tu cuenta: ${adminUrl}/register`,
     })
   }
 
   // ── 4. Verificar suscripción activa ───────────────────────────────
   if (!ACTIVE_STATUSES.includes(user.subscriptionStatus)) {
+    const adminUrl = process.env.NEXTAUTH_URL ?? ''
     return NextResponse.json({
       status: 'subscription_inactive',
       message:
-        '⚠️ Tu suscripción no está activa.\n\n' +
-        'Para seguir usando SmartPost Bot necesitas un plan vigente. ' +
-        'Ingresa al panel administrativo para renovar tu suscripción. 💳',
+        '⚠️ Tu suscripción de SmartPost ha vencido.\n\n' +
+        'Sin un plan activo el bot no puede publicar en tus redes. Renueva tu plan para retomar el control de tu contenido:\n' +
+        `💳 ${adminUrl}/suscripcion`,
     })
   }
 
@@ -133,11 +138,13 @@ export async function POST(req: NextRequest) {
 
   // Sin plataformas conectadas con token válido
   if (connectedPlatforms.length === 0) {
+    const adminUrl = process.env.NEXTAUTH_URL ?? ''
     return NextResponse.json({
       status: 'no_accounts',
       message:
-        '⚠️ No tienes redes sociales conectadas con tokens válidos.\n\n' +
-        'Ve al panel administrativo para conectar o reconectar tus cuentas de Facebook, Instagram o LinkedIn. 🔗',
+        '🔐 No tienes redes sociales conectadas con tokens válidos.\n\n' +
+        'Sin acceso a tus redes el bot no puede publicar. Conecta o reconecta tus cuentas en unos segundos:\n' +
+        `🔗 ${adminUrl}/cuentas`,
       user: {
         id: user.id,
         name: user.name,
