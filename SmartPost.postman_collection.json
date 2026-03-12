@@ -1,0 +1,685 @@
+{
+  "info": {
+    "name": "SmartPost API",
+    "description": "Colección completa de endpoints del panel administrativo SmartPost.\n\n**Variables requeridas:**\n- `baseUrl` → https://smartpost.torresjr.dev\n- `sessionCookie` → Cookie de sesión NextAuth (obtener después de login)\n- `botSecret` → Valor de BOT_INTERNAL_SECRET\n\n**Autenticación:** La mayoría de endpoints requieren la cookie `next-auth.session-token` (dev) o `__Secure-next-auth.session-token` (prod). Después de hacer login, copia la cookie del browser o usa el endpoint de registro + login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "smartpost"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://smartpost.torresjr.dev",
+      "type": "string"
+    },
+    {
+      "key": "botSecret",
+      "value": "bb07e13fc8107debb70c2dbfda29be6e98c769e9e3929d9f9ba7692518adc1a7",
+      "type": "string"
+    },
+    {
+      "key": "sessionToken",
+      "value": "",
+      "type": "string",
+      "description": "Pegar el valor de la cookie next-auth.session-token después de login"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 — Auth / Registro & Login",
+      "description": "Endpoints de autenticación con email/password y Facebook.",
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juan Torres\",\n  \"email\": \"juan@ejemplo.com\",\n  \"password\": \"MiPassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Crea una nueva cuenta de usuario con email y contraseña. El usuario queda en estado `subscriptionStatus = 'onboarding'` hasta que complete el proceso."
+          },
+          "response": [
+            {
+              "name": "201 — Registro exitoso",
+              "status": "Created",
+              "code": 201,
+              "body": "{ \"success\": true }"
+            },
+            {
+              "name": "409 — Email ya registrado",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{ \"error\": \"Email already registered\" }"
+            },
+            {
+              "name": "400 — Validación fallida",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"Password must be at least 8 characters\" }"
+            }
+          ]
+        },
+        {
+          "name": "Login con email/password (NextAuth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "email", "value": "juan@ejemplo.com" },
+                { "key": "password", "value": "MiPassword123" },
+                { "key": "csrfToken", "value": "{{csrfToken}}", "description": "Obtener de GET /api/auth/csrf" },
+                { "key": "callbackUrl", "value": "{{baseUrl}}/dashboard" },
+                { "key": "json", "value": "true" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/callback/credentials",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "callback", "credentials"]
+            },
+            "description": "Login estándar de NextAuth Credentials. Requiere CSRF token previo de GET /api/auth/csrf. La sesión queda en una cookie HttpOnly."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener CSRF Token (paso previo al login)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/csrf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "csrf"]
+            },
+            "description": "Devuelve el CSRF token requerido para el endpoint de login de NextAuth."
+          },
+          "response": [
+            {
+              "name": "200 — CSRF token",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"csrfToken\": \"abc123...\" }"
+            }
+          ]
+        },
+        {
+          "name": "Login con Facebook (JS SDK token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"EAABsbCS...token_corto_de_fb_sdk\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/facebook-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "facebook-login"]
+            },
+            "description": "Login para usuarios que usaron el JS SDK de Facebook. Intercambia el token corto por uno de larga duración (60 días), busca al usuario por FB ID o email, y crea la sesión NextAuth.\n\n**Nota:** Si el usuario no existe previamente, retorna 404."
+          },
+          "response": [
+            {
+              "name": "200 — Login exitoso (cookie de sesión en headers)",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"success\": true }"
+            },
+            {
+              "name": "404 — Usuario no encontrado",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{ \"error\": \"account_not_found\" }"
+            }
+          ]
+        },
+        {
+          "name": "Obtener sesión actual",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "session"]
+            },
+            "description": "Devuelve la sesión JWT activa del usuario (nombre, email, subscriptionStatus, plan, waId)."
+          },
+          "response": [
+            {
+              "name": "200 — Sesión activa",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"user\": {\n    \"name\": \"Juan Torres\",\n    \"email\": \"juan@ejemplo.com\",\n    \"subscriptionStatus\": \"active\",\n    \"plan\": \"basic\",\n    \"waId\": \"+521234567890\"\n  },\n  \"expires\": \"2026-04-12T00:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cerrar sesión (Sign Out)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "csrfToken", "value": "{{csrfToken}}" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signout"]
+            },
+            "description": "Cierra la sesión activa y limpia la cookie de NextAuth."
+          },
+          "response": []
+        },
+        {
+          "name": "Refrescar sesión JWT",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/session-refresh?callbackUrl=/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "session-refresh"],
+              "query": [
+                { "key": "callbackUrl", "value": "/dashboard", "description": "URL a donde redirigir tras refrescar" }
+              ]
+            },
+            "description": "Refresca el JWT con datos frescos de la BD (subscriptionStatus, plan, waId). Usado automáticamente después del checkout de Stripe.\n\nRedirige al `callbackUrl` tras actualizar la cookie."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 — Facebook & Instagram OAuth",
+      "description": "Flujos OAuth para conectar cuentas de Facebook e Instagram.",
+      "item": [
+        {
+          "name": "Redirigir a FB OAuth (server-side)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/facebook-redirect?state=connect",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "facebook-redirect"],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "connect",
+                  "description": "'login' para flujo de login | 'connect' para conectar cuenta desde Cuentas (default)"
+                }
+              ]
+            },
+            "description": "Redirige (302) al diálogo de autorización de Facebook Login for Business.\n\nAbre directamente en el browser — no funciona desde Postman como llamada directa."
+          },
+          "response": []
+        },
+        {
+          "name": "Callback Facebook OAuth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/callback/facebook?code=AQD...codigo&state=connect",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "callback", "facebook"],
+              "query": [
+                { "key": "code", "value": "AQD...codigo", "description": "Authorization code de Facebook" },
+                { "key": "state", "value": "connect", "description": "'login' o 'connect'" }
+              ]
+            },
+            "description": "Callback que maneja el código de autorización de Facebook. No llamar directamente — Facebook lo llama automáticamente.\n\n**Flujo connect:** Requiere sesión activa → redirige a /cuentas?success=facebook\n**Flujo login:** Crea sesión JWT → redirige a /dashboard o /onboarding"
+          },
+          "response": []
+        },
+        {
+          "name": "Conectar Facebook (JS SDK, usuario autenticado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"EAABsbCS...token_corto_de_fb_sdk\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connect/facebook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "connect", "facebook"]
+            },
+            "description": "Conecta Facebook/Instagram desde la página de Cuentas usando el JS SDK. El token corto se intercambia por uno de larga duración (60 días), se cifra y guarda en la BD.\n\nTambién guarda el IG Business Account si está vinculado a la página de Facebook."
+          },
+          "response": [
+            {
+              "name": "200 — Conectado",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"profileName\": \"Mi Página de Facebook\",\n  \"hasInstagram\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Desconectar cuenta social",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"uuid-del-UserSocialAccount\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/disconnect",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "disconnect"]
+            },
+            "description": "Marca una cuenta social como inactiva (`isActive = false`). Funciona para Facebook, Instagram y LinkedIn.\n\nEl `accountId` es el ID del registro en la tabla `user_social_accounts`."
+          },
+          "response": [
+            {
+              "name": "200 — Desconectado",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"success\": true }"
+            },
+            {
+              "name": "404 — Cuenta no encontrada o no pertenece al usuario",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{ \"error\": \"Account not found\" }"
+            }
+          ]
+        },
+        {
+          "name": "Webhook: Facebook Deauthorize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "signed_request",
+                  "value": "<base64url_sig>.<base64url_payload>",
+                  "description": "Generado por Facebook automáticamente. Formato: HMAC-SHA256(payload) + '.' + base64url(JSON)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/facebook/deauthorize",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "facebook", "deauthorize"]
+            },
+            "description": "Llamado por Facebook cuando un usuario elimina la app desde su configuración de Facebook. Verifica firma HMAC-SHA256 y marca las cuentas (facebook + instagram) de ese usuario como inactivas."
+          },
+          "response": [
+            {
+              "name": "200 — Procesado",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"success\": true }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 — LinkedIn OAuth",
+      "description": "Flujo OAuth para conectar cuenta de LinkedIn (solo plan Pro).",
+      "item": [
+        {
+          "name": "Callback LinkedIn OAuth",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/callback/linkedin?code=AQT...codigo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "callback", "linkedin"],
+              "query": [
+                { "key": "code", "value": "AQT...codigo", "description": "Authorization code de LinkedIn" },
+                { "key": "error", "value": "", "description": "Presente si el usuario denegó el permiso", "disabled": true }
+              ]
+            },
+            "description": "Callback OAuth de LinkedIn. Solo disponible para usuarios con plan Pro.\n\nIntercambia el código por un access token, obtiene el perfil vía OpenID Connect, encripta el token y lo guarda.\n\n**Requiere sesión activa.** Redirige a:\n- `/cuentas?success=linkedin` si todo OK\n- `/cuentas?error=linkedin_pro_required` si el plan no es Pro\n- `/cuentas?error=linkedin_denied` si el usuario canceló"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 — Onboarding",
+      "description": "Endpoints del flujo de onboarding para nuevos usuarios.",
+      "item": [
+        {
+          "name": "Actualizar cuenta (email + password)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"juanreal@ejemplo.com\",\n  \"password\": \"MiNuevaPassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/update-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "update-account"]
+            },
+            "description": "Paso 1 del onboarding para usuarios que registraron con Facebook. Actualiza el email placeholder (`fb_<id>@pending.sp`) por el email real y establece una contraseña.\n\nValidaciones:\n- Email no debe estar en uso por otro usuario\n- Password mínimo 8 caracteres"
+          },
+          "response": [
+            {
+              "name": "200 — Actualizado",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"success\": true }"
+            },
+            {
+              "name": "409 — Email ya en uso",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{ \"error\": \"Email already in use\" }"
+            }
+          ]
+        },
+        {
+          "name": "Vincular número de WhatsApp",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+521234567890\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/onboarding/link-whatsapp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "onboarding", "link-whatsapp"]
+            },
+            "description": "Vincula un número de WhatsApp al usuario. Este número es usado por el bot de n8n para identificar al usuario.\n\nFormato aceptado: `+521234567890` (con `+`) o `521234567890` (sin `+`).\n\nValidaciones:\n- Formato internacional: 10-15 dígitos\n- Número no debe estar en uso por otro usuario"
+          },
+          "response": [
+            {
+              "name": "200 — Vinculado",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"waId\": \"+521234567890\"\n}"
+            },
+            {
+              "name": "400 — Formato inválido",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"Invalid phone number format\" }"
+            },
+            {
+              "name": "409 — Número ya en uso",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{ \"error\": \"Phone number already linked to another account\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 — Stripe / Suscripción",
+      "description": "Checkout, portal de facturación y consulta de suscripción.",
+      "item": [
+        {
+          "name": "Crear sesión de checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"basic\",\n  \"interval\": \"month\",\n  \"from\": \"onboarding\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "checkout"]
+            },
+            "description": "Crea una Stripe Checkout Session y devuelve la URL para redirigir al usuario.\n\n**Parámetros:**\n- `plan`: `'basic'` | `'pro'` (default: 'basic')\n- `interval`: `'month'` | `'year'` (default: 'month')\n- `from`: `'onboarding'` aplica trial de 7 días si el usuario no ha tenido suscripción previa\n\n**Precios:**\n- Basic mensual: $29 USD/mes\n- Basic anual: $264 USD/año ($22/mes)\n- Pro mensual: $69 USD/mes\n- Pro anual: $588 USD/año ($49/mes)"
+          },
+          "response": [
+            {
+              "name": "200 — URL de checkout",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"url\": \"https://checkout.stripe.com/pay/cs_live_...\" }"
+            }
+          ]
+        },
+        {
+          "name": "Obtener detalles de suscripción",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/subscription",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "subscription"]
+            },
+            "description": "Consulta los detalles de la suscripción activa del usuario desde Stripe. Usado por la página /suscripcion."
+          },
+          "response": [
+            {
+              "name": "200 — Suscripción activa",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"plan\": \"basic\",\n  \"subscriptionStatus\": \"active\",\n  \"subscriptionId\": \"sub_1ABC...\",\n  \"currentPeriodEnd\": \"2026-04-12T00:00:00.000Z\",\n  \"cancelAtPeriodEnd\": false,\n  \"amount\": 2900,\n  \"currency\": \"usd\",\n  \"interval\": \"month\",\n  \"trialEnd\": null,\n  \"trialDaysLeft\": null,\n  \"paymentMethod\": {\n    \"brand\": \"visa\",\n    \"last4\": \"4242\",\n    \"expMonth\": 12,\n    \"expYear\": 2027\n  },\n  \"invoices\": [\n    {\n      \"id\": \"in_1ABC...\",\n      \"amount\": 2900,\n      \"currency\": \"usd\",\n      \"date\": \"2026-03-12T00:00:00.000Z\",\n      \"status\": \"paid\",\n      \"pdfUrl\": \"https://invoice.stripe.com/...\",\n      \"hostedUrl\": \"https://invoice.stripe.com/...\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Crear sesión del portal de facturación",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/portal",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "portal"]
+            },
+            "description": "Crea una sesión del portal de Stripe para que el usuario gestione su suscripción (cambiar plan, cancelar, actualizar método de pago, ver facturas).\n\nDevuelve la URL del portal al que redirigir al usuario. El portal regresa a `/suscripcion` al cerrar."
+          },
+          "response": [
+            {
+              "name": "200 — URL del portal",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"url\": \"https://billing.stripe.com/session/...\" }"
+            },
+            {
+              "name": "400 — Sin stripeCustomerId",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"No Stripe customer found\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 — Webhooks",
+      "description": "Endpoints de webhooks para Stripe. NO llamar directamente — son invocados por Stripe.",
+      "item": [
+        {
+          "name": "Stripe Webhook (principal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "stripe-signature", "value": "t=...,v1=...", "description": "Firma HMAC-SHA256 generada por Stripe. Verificada con STRIPE_WEBHOOK_SECRET." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_1ABC...\",\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"metadata\": {\n        \"userId\": \"uuid-del-usuario\",\n        \"plan\": \"basic\"\n      },\n      \"subscription\": \"sub_1ABC...\",\n      \"customer\": \"cus_1ABC...\"\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stripe/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stripe", "webhook"]
+            },
+            "description": "Webhook principal de Stripe. Requiere el header `stripe-signature` válido.\n\n**Eventos manejados:**\n- `checkout.session.completed` → Guarda subscriptionId + plan\n- `customer.subscription.updated` → Actualiza status + plan\n- `customer.subscription.deleted` → Marca como cancelado\n- `invoice.paid` → Confirma status activo\n- `invoice.payment_failed` → Marca como past_due\n\n**Configurar en:** Dashboard de Stripe → Webhooks → `https://smartpost.torresjr.dev/api/stripe/webhook`"
+          },
+          "response": [
+            {
+              "name": "200 — Recibido",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"received\": true }"
+            },
+            {
+              "name": "400 — Firma inválida",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"Invalid signature\" }"
+            }
+          ]
+        },
+        {
+          "name": "Stripe Webhook (legado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "stripe-signature", "value": "t=...,v1=..." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhooks/stripe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhooks", "stripe"]
+            },
+            "description": "Endpoint legado (duplicado del principal). Mantiene compatibilidad con configuraciones antiguas de Stripe. Mismo comportamiento que `/api/stripe/webhook`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07 — Bot Interno (n8n)",
+      "description": "Endpoint exclusivo para el bot de WhatsApp en n8n. Protegido por X-Bot-Secret.",
+      "item": [
+        {
+          "name": "Verificar tenant por wa_id",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Bot-Secret", "value": "{{botSecret}}", "description": "Debe coincidir con BOT_INTERNAL_SECRET en el servidor" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wa_id\": \"+521234567890\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/internal/bot/auth",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "internal", "bot", "auth"]
+            },
+            "description": "Endpoint exclusivo para el bot de WhatsApp en n8n. Recibe el número de WhatsApp del usuario, valida su registro y suscripción, y devuelve los tokens descifrados de sus redes sociales.\n\n**Posibles respuestas según status:**\n\n`not_registered` — El wa_id no está vinculado a ninguna cuenta.\n`subscription_inactive` — La suscripción está cancelada o vencida.\n`no_accounts` — No tiene redes sociales conectadas con tokens válidos.\n`active` — Todo OK, incluye tokens descifrados y plataformas disponibles.\n\n**Seguridad:** Verificado por header `X-Bot-Secret` (no requiere sesión NextAuth)."
+          },
+          "response": [
+            {
+              "name": "200 — active: Usuario con cuentas conectadas",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"active\",\n  \"user\": {\n    \"id\": \"uuid-usuario\",\n    \"name\": \"Juan Torres\",\n    \"plan\": \"basic\"\n  },\n  \"accounts\": {\n    \"facebook\": {\n      \"connected\": true,\n      \"token\": \"EAABsbCS...token_descifrado\",\n      \"pageId\": \"123456789\",\n      \"platformUserId\": \"987654321\",\n      \"profileName\": \"Mi Página\",\n      \"tokenExpired\": false\n    },\n    \"instagram\": {\n      \"connected\": true,\n      \"token\": \"EAABsbCS...token_descifrado\",\n      \"igUserId\": \"112233445\",\n      \"tokenExpired\": false\n    },\n    \"linkedin\": {\n      \"connected\": false\n    }\n  },\n  \"connectedPlatforms\": [\"Facebook\", \"Instagram\"]\n}"
+            },
+            {
+              "name": "200 — not_registered: Número no vinculado",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"not_registered\",\n  \"message\": \"❌ Tu número de WhatsApp no está vinculado a ninguna cuenta en SmartPost.\\n\\nRegístrate en nuestra plataforma y vincula tu número desde el panel administrativo para comenzar. 🚀\"\n}"
+            },
+            {
+              "name": "200 — subscription_inactive: Sin suscripción activa",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"subscription_inactive\",\n  \"message\": \"⚠️ Tu suscripción no está activa.\\n\\nPara seguir usando SmartPost Bot necesitas un plan vigente. Ingresa al panel administrativo para renovar tu suscripción. 💳\"\n}"
+            },
+            {
+              "name": "200 — no_accounts: Sin redes conectadas",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"no_accounts\",\n  \"message\": \"⚠️ No tienes redes sociales conectadas con tokens válidos.\\n\\nVe al panel administrativo para conectar o reconectar tus cuentas de Facebook, Instagram o LinkedIn. 🔗\",\n  \"user\": { \"id\": \"uuid\", \"name\": \"Juan Torres\", \"plan\": \"basic\" },\n  \"accounts\": {\n    \"facebook\": { \"connected\": false },\n    \"instagram\": { \"connected\": false },\n    \"linkedin\": { \"connected\": false }\n  },\n  \"connectedPlatforms\": []\n}"
+            },
+            {
+              "name": "401 — Secreto inválido",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{ \"error\": \"Unauthorized\" }"
+            },
+            {
+              "name": "400 — wa_id faltante",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"wa_id is required\" }"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
