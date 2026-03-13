@@ -105,6 +105,7 @@ model Post {
   likes          Int?      @default(0)
   comments       Int?      @default(0)
   shares         Int?      @default(0)
+  errorMessage   String?   @map("error_message")
   createdAt      DateTime  @default(now()) @map("created_at")
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 

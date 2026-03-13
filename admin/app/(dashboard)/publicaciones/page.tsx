@@ -54,28 +54,30 @@ export default async function PublicacionesPage({
     }
   }
 
-  const [posts, total] = await Promise.all([
+  const [posts, total, failedCount] = await Promise.all([
     prisma.post.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       select: {
-        id:          true,
-        platform:    true,
-        content:     true,
-        imageUrl:    true,
-        status:      true,
-        publishedAt: true,
+        id:           true,
+        platform:     true,
+        content:      true,
+        imageUrl:     true,
+        status:       true,
+        publishedAt:  true,
         scheduledFor: true,
-        likes:       true,
-        comments:    true,
-        shares:      true,
-        reach:       true,
-        createdAt:   true,
+        likes:        true,
+        comments:     true,
+        shares:       true,
+        reach:        true,
+        errorMessage: true,
+        createdAt:    true,
       },
     }),
     prisma.post.count({ where }),
+    prisma.post.count({ where: { userId, status: 'failed' } }),
   ])
 
   // Serialize dates for client component
@@ -84,6 +86,7 @@ export default async function PublicacionesPage({
     publishedAt:  p.publishedAt?.toISOString()  ?? null,
     scheduledFor: p.scheduledFor?.toISOString() ?? null,
     createdAt:    p.createdAt.toISOString(),
+    errorMessage: p.errorMessage ?? null,
   }))
 
   return (
@@ -96,6 +99,7 @@ export default async function PublicacionesPage({
         <PublicacionesClient
           posts={serialized}
           total={total}
+          failedCount={failedCount}
           page={page}
           pageSize={PAGE_SIZE}
           platform={platform}

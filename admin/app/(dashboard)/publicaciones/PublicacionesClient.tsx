@@ -22,18 +22,20 @@ export interface PostItem {
   comments:     number | null
   shares:       number | null
   reach:        number | null
+  errorMessage: string | null
   createdAt:    string
 }
 
 interface PublicacionesClientProps {
-  posts:    PostItem[]
-  total:    number
-  page:     number
-  pageSize: number
-  platform: string
-  status:   string
-  dateFrom: string
-  dateTo:   string
+  posts:        PostItem[]
+  total:        number
+  failedCount:  number
+  page:         number
+  pageSize:     number
+  platform:     string
+  status:       string
+  dateFrom:     string
+  dateTo:       string
 }
 
 // ─── Platform Icons ───────────────────────────────────────────────
@@ -90,6 +92,70 @@ function MetricCell({ likes, comments, reach }: { likes: number; comments: numbe
         </svg>
         {reach}
       </span>
+    </div>
+  )
+}
+
+// ─── Failed Posts Alert ───────────────────────────────────────────
+function PostsFallidosAlert({
+  count,
+  isFilteringFailed,
+  onFilter,
+}: {
+  count: number
+  isFilteringFailed: boolean
+  onFilter: () => void
+}) {
+  if (count === 0 || isFilteringFailed) return null
+
+  return (
+    <div
+      className="rounded-2xl px-5 py-4 flex items-center gap-4"
+      style={{
+        background:   'color-mix(in srgb, #ef4444 8%, var(--bg-card))',
+        border:       '1px solid color-mix(in srgb, #ef4444 30%, transparent)',
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      {/* Icon */}
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: 'color-mix(in srgb, #ef4444 15%, transparent)' }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2}
+             className="w-4.5 h-4.5" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+
+      {/* Text */}
+      <div className="flex-1 min-w-0">
+        <p className="font-body text-sm font-semibold" style={{ color: '#ef4444' }}>
+          {count === 1
+            ? '1 publicación falló al publicarse'
+            : `${count} publicaciones fallaron al publicarse`}
+        </p>
+        <p className="font-body text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          Revisa los detalles para ver el motivo del error y volver a intentarlo.
+        </p>
+      </div>
+
+      {/* CTA */}
+      <button
+        onClick={onFilter}
+        className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-colors duration-150"
+        style={{
+          background: 'color-mix(in srgb, #ef4444 15%, transparent)',
+          color:      '#ef4444',
+          border:     '1px solid color-mix(in srgb, #ef4444 30%, transparent)',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, #ef4444 25%, transparent)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, #ef4444 15%, transparent)')}
+      >
+        Ver fallidas
+      </button>
     </div>
   )
 }
@@ -285,7 +351,7 @@ function PostRow({
 
 // ─── Main Component ───────────────────────────────────────────────
 export default function PublicacionesClient({
-  posts, total, page, pageSize, platform, status, dateFrom, dateTo,
+  posts, total, failedCount, page, pageSize, platform, status, dateFrom, dateTo,
 }: PublicacionesClientProps) {
   const { t, fmtDate } = useI18n()
   const router       = useRouter()
@@ -315,6 +381,13 @@ export default function PublicacionesClient({
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
+      {/* Failed posts alert */}
+      <PostsFallidosAlert
+        count={failedCount}
+        isFilteringFailed={status === 'failed'}
+        onFilter={() => updateParams({ status: 'failed', page: 1 })}
+      />
+
       {/* Filters */}
       <Filters
         platform={platform} status={status} dateFrom={dateFrom} dateTo={dateTo}
@@ -448,6 +521,32 @@ export default function PublicacionesClient({
               </div>
               <Badge variant={statusVariant[selectedPost.status] ?? 'draft'} dot />
             </div>
+
+            {/* Error block — only shown for failed posts */}
+            {selectedPost.status === 'failed' && selectedPost.errorMessage && (
+              <div
+                className="rounded-xl px-4 py-3 flex gap-3"
+                style={{
+                  background: 'color-mix(in srgb, #ef4444 8%, var(--bg-surface))',
+                  border:     '1px solid color-mix(in srgb, #ef4444 25%, transparent)',
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2}
+                     className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div>
+                  <p className="font-body text-xs font-semibold mb-0.5" style={{ color: '#ef4444' }}>
+                    Error al publicar
+                  </p>
+                  <p className="font-body text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    {selectedPost.errorMessage}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div>
               <p className="font-body text-2xs font-semibold uppercase tracking-[0.6px] mb-2"
