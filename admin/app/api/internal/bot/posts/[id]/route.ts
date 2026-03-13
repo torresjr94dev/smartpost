@@ -13,8 +13,9 @@ import { prisma } from '@/lib/prisma'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   // ── 1. Validar secreto ────────────────────────────────────────────
   const secret = req.headers.get('x-bot-secret')
   if (!secret || secret !== process.env.BOT_INTERNAL_SECRET) {
@@ -33,7 +34,7 @@ export async function PATCH(
     body as Record<string, string | number | undefined>
 
   // ── 3. Verificar que el post existe ───────────────────────────────
-  const existing = await prisma.post.findUnique({ where: { id: params.id } })
+  const existing = await prisma.post.findUnique({ where: { id: id } })
   if (!existing) {
     return NextResponse.json({ error: 'Post no encontrado' }, { status: 404 })
   }
@@ -64,7 +65,7 @@ export async function PATCH(
 
   // ── 5. Actualizar ─────────────────────────────────────────────────
   const post = await prisma.post.update({
-    where: { id: params.id },
+    where: { id: id },
     data,
   })
 
